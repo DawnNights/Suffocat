@@ -1,8 +1,12 @@
 # Suffocat
 
+> 项目名 **Suffocat** 取自本人在赛尔号中最喜欢的精灵「萨芙凯特」（精灵 ID：4604）。
+
+![萨芙凯特](docs/assets/suffocat.png)
+
 赛尔号脱机任务工具。项目由 AI 从 `MWHelper` 中的脱机功能迁移而来，保留协议实现、Lua 接口绑定、战斗方案编辑器与 Lua 脚本工作台，并做了以下调整：
 
-- 数据源由 `mwdb` 改为 [SeerAPI](https://api.seerapi.com)，本地使用 SQLite 缓存，按需请求并写入数据库。
+- 数据源由 `mwdb` 改为 [SeerAPI](https://github.com/SeerAPI/seerapi)，本地使用 SQLite 缓存，按需请求并写入数据库。
 - 脚本改为明文 `.lua`，不再加密、打包为 `.sfc`。
 - 战斗方案不再嵌入脚本，脚本只从战斗方案编辑器目录读取 YAML 方案。
 - 因子任务由 Go 原生执行，不再为每个因子生成重复脚本；难度、扫荡、失败次数与逐关端口/方案保存在 `data/config/factors.json`。
@@ -179,3 +183,7 @@ SQLite 数据库位于 `data/db/seerapi.db`，数据按字段存储：
 - 后端不会把账号密码写入日志或数据文件。
 - 协议层的封包加密、心跳与危险命令拦截保持原实现。
 - Lua 类型注释位于 `docs/lua_sdk/`，可用于 VS Code + Lua Language Server 补全。
+
+## 特别感谢
+
+感谢 [坚果](https://github.com/Nattsu39) 和他的项目 [SeerAPI](https://github.com/SeerAPI/seerapi)为本项目的数据来源提供支持。
