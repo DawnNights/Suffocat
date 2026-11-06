@@ -1,0 +1,59 @@
+{
+  "enabled": {},
+  "settings": {
+    "262": {
+      "mode": 1,
+      "speedrun": false,
+      "failTimes": 10,
+      "stages": [
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "FLASH",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "FLASH",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        }
+      ]
+    },
+    "263": {
+      "mode": 1,
+      "speedrun": false,
+      "failTimes": 10,
+      "stages": [
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "FLASH",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        },
+        {
+          "port": "UNITY",
+          "plan": "艾欧鲁斯王.yaml"
+        }
+      ]
+    }
+  }
+}

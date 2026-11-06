@@ -1,0 +1,76 @@
+metadata:
+  name: %s
+seerSet:
+  title: 0
+  suit: 0
+  equip: 0
+  enableEquipments: false
+  enableTitle: false
+  battleFire: 0
+rosterSet:
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+scriptConfig:
+  fightRoundLimit: 0
+  hpLimit: false
+  clothMust: true
+  titleMust: true
+  supportPetsMust: true

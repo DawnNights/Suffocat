@@ -1,0 +1,3191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Suffocat Studio · Lua 脚本工作台</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --card-bg: #ffffff;
+            --text: #1a1d23;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --accent: #4d9fff;
+            --accent-dark: #3b7fd9;
+            --danger: #e05555;
+            --danger-dark: #c94444;
+            --success: #22c55e;
+            --warn: #f59e0b;
+            --border: #e5e7eb;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.16);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --radius-lg: 14px;
+            --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+        }
+
+        /* 头部 */
+        .header {
+            position: relative;
+            text-align: center;
+            padding: 8px 0 4px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--text);
+            flex-shrink: 0;
+        }
+
+        .header-sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0;
+            color: var(--text-muted);
+        }
+
+        /* 头部右侧入口 */
+        .header-link {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 9px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0;
+            color: var(--text-secondary);
+            background: var(--card-bg);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .header-link:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 400px) {
+            .header-link-text {
+                display: none;
+            }
+        }
+
+        /* 账号卡片 */
+        .account-bar {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .account-bar input {
+            flex: 1;
+            padding: 10px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            background: #f9fafb;
+            outline: none;
+            min-width: 0;
+        }
+
+        .account-bar input:focus {
+            border-color: var(--accent);
+        }
+
+        .account-bar .toggle-pwd {
+            font-size: 18px;
+            padding: 8px 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        /* 标签栏 */
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color var(--transition), background var(--transition);
+            position: relative;
+            border: none;
+            background: none;
+        }
+
+        .tab.active {
+            color: var(--accent);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 11px 16px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity var(--transition);
+            font-family: var(--font);
+            white-space: nowrap;
+        }
+
+        .btn:active {
+            opacity: 0.75;
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .btn-run {
+            flex: 1;
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-stop {
+            background: var(--danger);
+            color: #fff;
+            min-width: 70px;
+        }
+
+        .btn-small {
+            min-width: 60px;
+        }
+
+        @media (max-width: 520px) {
+            .controls {
+                gap: 5px;
+            }
+
+            .btn {
+                padding: 12px 6px;
+                font-size: 13px;
+            }
+
+            .btn-stop,
+            .btn-small {
+                min-width: 48px;
+            }
+        }
+
+        /* 脚本列表 */
+        .script-list-wrap {
+            flex: 1;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            min-height: 0;
+            margin-bottom: 8px;
+        }
+
+        .script-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .script-item {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform var(--transition), box-shadow var(--transition);
+            position: relative;
+        }
+
+        .script-item.dragging {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            opacity: 0.9;
+        }
+
+        .script-item.drag-over {
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+
+        .drag-handle {
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: grab;
+            padding: 4px 2px;
+            line-height: 1;
+            flex-shrink: 0;
+            touch-action: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .script-checkbox {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .script-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .script-name {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .script-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .script-version {
+            color: var(--text-muted);
+        }
+
+        .script-status {
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .status-pending {
+            color: var(--text-muted);
+        }
+
+        .status-running {
+            color: var(--accent);
+            background: #eff6ff;
+        }
+
+        .status-success {
+            color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .status-failed {
+            color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .status-stopped {
+            color: var(--warn);
+            background: #fffbeb;
+        }
+
+        .script-menu-btn {
+            color: var(--text-muted);
+            font-size: 18px;
+            padding: 4px 2px;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* 底部日志面板 */
+        .log-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            box-shadow: var(--shadow-lg);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            max-height: 45vh;
+            overflow: hidden;
+            transition: max-height 0.25s ease;
+        }
+
+        .log-panel.collapsed {
+            max-height: 42px;
+        }
+
+        .log-panel-header {
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .log-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 600;
+            font-family: var(--font);
+        }
+
+        .log-tab.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+            margin-bottom: -1px;
+        }
+
+        .log-toggle {
+            font-size: 16px;
+            padding: 6px 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            border: none;
+            background: none;
+            line-height: 1;
+        }
+
+        .log-content {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: var(--font);
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            padding: 1px 0;
+            word-break: break-all;
+        }
+
+        .log-DEBUG {
+            color: #6b7280;
+        }
+
+        .log-INFO {
+            color: #2563eb;
+        }
+
+        .log-WARN {
+            color: #d97706;
+        }
+
+        .log-ERROR {
+            color: #dc2626;
+        }
+
+        .log-FIGHT {
+            color: #7c3aed;
+        }
+
+        /* 战斗信息面板 */
+        .fight-entry {
+            margin: 4px 0;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .fight-card {
+            background: #f8f7ff;
+            border: 1px solid #e0ddf5;
+            border-radius: 8px;
+            padding: 7px 10px;
+            margin: 6px 0;
+        }
+
+        .fight-card-title {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #5b4fa8;
+            font-size: 13px;
+        }
+
+        .fight-pet-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 3px 0;
+            font-size: 12px;
+        }
+
+        .pet-tag {
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-weight: 600;
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+
+        .pet-tag.player {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .pet-tag.enemy {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .pet-name {
+            font-weight: 600;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .hp-bar-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .hp-bar {
+            flex: 1;
+            height: 7px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 24px;
+        }
+
+        .hp-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .hp-bar-fill.high {
+            background: #22c55e;
+        }
+
+        .hp-bar-fill.mid {
+            background: #f59e0b;
+        }
+
+        .hp-bar-fill.low {
+            background: #ef4444;
+        }
+
+        .hp-bar-fill.dead {
+            background: #d1d5db;
+        }
+
+        .hp-text {
+            font-size: 10px;
+            color: #6b7280;
+            flex-shrink: 0;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .fight-round {
+            text-align: center;
+            font-weight: 700;
+            color: #7c3aed;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+
+        .fight-skill-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 2px 0;
+            font-size: 12px;
+        }
+
+        .fight-skill-hp {
+            padding-left: 2px;
+            margin-top: 1px;
+        }
+
+        .fight-skill-hp .hp-bar-wrap {
+            max-width: 170px;
+        }
+
+        .skill-name {
+            color: #7c3aed;
+            font-weight: 500;
+        }
+
+        .skill-damage {
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .skill-crit {
+            font-size: 10px;
+            color: #f59e0b;
+            font-weight: 700;
+            background: #fffbeb;
+            padding: 0 3px;
+            border-radius: 2px;
+        }
+
+        .skill-extra {
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .skill-noop {
+            color: #9ca3af;
+        }
+
+        .fight-pet-in {
+            padding: 3px 0;
+            font-size: 12px;
+        }
+
+        .fight-pet-in .pet-name {
+            color: #16a34a;
+        }
+
+        .fight-pet-out {
+            padding: 3px 0;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .fight-item {
+            padding: 3px 0;
+            font-size: 12px;
+        }
+
+        .fight-over {
+            text-align: center;
+            font-weight: 700;
+            padding: 6px;
+            margin: 6px 0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .fight-over.win {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        .fight-over.lose {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .fight-over.escape {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        /* 浮窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-sheet {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            width: 100%;
+            max-width: 560px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.25s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-overlay.active .modal-sheet {
+            transform: translateY(0);
+        }
+
+        .modal-sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 12px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .modal-sheet-title {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .modal-sheet-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: #f3f4f6;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .modal-sheet-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 18px 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-sheet-body p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .modal-sheet-footer {
+            padding: 12px 18px 20px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .modal-sheet-footer .btn {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: #f3f4f6;
+            color: var(--text);
+        }
+
+        .btn-danger-fill {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-primary-fill {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* 居中对话框（TAB长按浮窗 / 中止确认浮窗） */
+        #tabRunModal, #stopConfirmModal {
+            align-items: center;
+        }
+
+        .modal-dialog {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            width: 82%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9);
+            transition: transform 0.25s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-overlay.active .modal-dialog {
+            transform: scale(1);
+        }
+
+        /* 设置表单 */
+        .setting-item {
+            margin-bottom: 16px;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+
+        .setting-item input[type="text"],
+        .setting-item select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: var(--font);
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .setting-item input:focus,
+        .setting-item select:focus {
+            border-color: var(--accent);
+        }
+
+        .setting-item .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-switch {
+            width: 48px;
+            height: 28px;
+            background: #d1d5db;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background var(--transition);
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.on {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform var(--transition);
+        }
+
+        .toggle-switch.on::after {
+            transform: translateX(20px);
+        }
+
+        .multi-select-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chip {
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            background: #f3f4f6;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .chip.selected {
+            background: #eff6ff;
+            border-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .number-input-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+        }
+
+        .number-input-row input[type="number"] {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-right: none;
+            border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+            font-size: 15px;
+            font-family: var(--font);
+            outline: none;
+            background: #f9fafb;
+            -moz-appearance: textfield;
+        }
+
+        .number-input-row input[type="number"]::-webkit-outer-spin-button,
+        .number-input-row input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .number-input-row input:focus {
+            border-color: var(--accent);
+        }
+
+        .number-spinners {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-left: none;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            overflow: hidden;
+        }
+
+        .spinner-btn {
+            flex: 1;
+            width: 28px;
+            border: none;
+            background: #f3f4f6;
+            color: var(--text-secondary);
+            font-size: 10px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition);
+            font-family: var(--font);
+            min-height: 20px;
+        }
+
+        .spinner-btn:active {
+            background: #e5e7eb;
+        }
+
+        .spinner-up {
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1f2937;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 400;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 右键/长按菜单 */
+        .context-menu {
+            position: fixed;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            z-index: 300;
+            min-width: 140px;
+            padding: 6px 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+            transition: opacity 0.15s, transform 0.15s;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        .context-menu-item {
+            display: block;
+            width: 100%;
+            padding: 12px 18px;
+            border: none;
+            background: none;
+            text-align: left;
+            font-size: 15px;
+            font-family: var(--font);
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        .context-menu-item:active {
+            background: #f3f4f6;
+        }
+
+        .context-menu-item.danger {
+            color: var(--danger);
+        }
+
+        .account-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 2px;
+        }
+
+        .account-dropdown.show {
+            display: block;
+        }
+
+        .account-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 15px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font);
+        }
+
+        .account-option:last-child {
+            border-bottom: none;
+        }
+
+        .account-option:hover {
+            background: #f9fafb;
+        }
+
+        .account-option .account-text {
+            flex: 1;
+        }
+
+        .account-option .account-delete {
+            color: var(--danger);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-weight: bold;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        /* 因子设置 */
+        .factor-settings-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .factor-settings-head .name {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .factor-settings-head .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .factor-section {
+            margin-bottom: 20px;
+        }
+
+        .factor-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .factor-mode-chips {
+            display: flex;
+            gap: 10px;
+        }
+
+        .factor-mode-chip {
+            flex: 1;
+            text-align: center;
+            padding: 11px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            background: #f3f4f6;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+
+        .factor-mode-chip.selected {
+            background: #eff6ff;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .factor-options-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 20px;
+        }
+
+        .factor-option-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .factor-number-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: var(--font);
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .factor-number-input:focus {
+            border-color: var(--accent);
+        }
+
+        .factor-stages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .factor-stage-row {
+            display: grid;
+            grid-template-columns: 58px 132px minmax(0, 1fr);
+            align-items: center;
+            gap: 10px;
+        }
+
+        .factor-stage-row>label {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .factor-stage-row select {
+            width: 100%;
+            min-width: 0;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: var(--font);
+            outline: none;
+            background: #f9fafb;
+        }
+
+        .factor-stage-row select:focus {
+            border-color: var(--accent);
+        }
+
+        .factor-list-meta {
+            color: var(--text-muted);
+        }
+
+        #descModal .modal-sheet {
+            max-width: 720px;
+        }
+
+        #factorSettingsModal {
+            align-items: center;
+        }
+
+        #factorSettingsModal .modal-sheet {
+            width: min(1040px, calc(100vw - 32px));
+            max-width: none;
+            max-height: calc(100dvh - 24px);
+            border-radius: var(--radius-lg);
+            transform: scale(0.97);
+            opacity: 0;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        #factorSettingsModal.active .modal-sheet {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        @media (max-width: 700px) {
+            .factor-stage-row {
+                grid-template-columns: 58px minmax(0, 1fr);
+            }
+
+            .factor-stage-row select.stage-plan {
+                grid-column: 2;
+            }
+
+            .factor-options-row {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .modal-sheet,
+            #descModal .modal-sheet,
+            #factorSettingsModal .modal-sheet {
+                max-width: 100%;
+            }
+
+            #factorSettingsModal .modal-sheet {
+                width: calc(100vw - 16px);
+                max-height: calc(100dvh - 16px);
+            }
+        }
+
+        /* 批量删除确认浮窗 */
+        #batchDeleteModal {
+            align-items: center;
+        }
+
+        .script-type {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, .12);
+            color: #2563eb;
+        }
+
+        .script-type.flash {
+            background: rgba(245, 158, 11, .14);
+            color: #b45309;
+        }
+
+        .script-type.invalid {
+            background: rgba(239, 68, 68, .12);
+            color: #dc2626;
+        }
+
+        #editorArea {
+            width: 100%;
+            min-height: 46vh;
+            box-sizing: border-box;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: vertical;
+            background: #fff;
+            color: var(--text);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="app">
+        <div class="header">Suffocat Studio<span class="header-sub">Lua 脚本工作台</span>
+            <a class="header-link" href="/fight_manager" target="_blank" rel="noopener" title="战斗方案管理">
+                <span>📁</span><span class="header-link-text">战斗方案</span>
+            </a>
+        </div>
+
+        <!-- 账号栏 -->
+        <div class="account-bar">
+            <div class="account-dropdown-wrapper" style="flex:1;position:relative;min-width:0;">
+                <input type="text" id="account" placeholder="米米号" inputmode="numeric" autocomplete="off"
+                    style="width:100%;box-sizing:border-box;">
+                <span class="dropdown-arrow" id="accountArrow"
+                    style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;color:#9ca3af;cursor:pointer;padding:4px;user-select:none;">▼</span>
+                <div class="account-dropdown" id="accountDropdown"></div>
+            </div>
+            <input type="password" id="password" placeholder="密码">
+            <span class="toggle-pwd" id="togglePwd">👁</span>
+        </div>
+
+        <!-- 隐藏的文件选择器 -->
+        <input type="file" id="importFile" accept=".lua" multiple style="display:none">
+
+        <!-- 标签栏 -->
+        <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="UNITY">UNITY</button>
+            <button class="tab" data-tab="FLASH">FLASH</button>
+            <button class="tab" data-tab="FACTOR">因子</button>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button class="btn btn-run" id="btnRun">▶ 全部运行</button>
+            <button class="btn btn-stop" id="btnStop" disabled>■ 停止</button>
+            <button class="btn btn-cancel btn-small" id="btnNewScript">✚ 新建</button>
+            <button class="btn btn-cancel btn-small" id="btnImport">📥 导入</button>
+        </div>
+
+        <!-- 脚本列表 -->
+        <div class="script-list-wrap" id="scriptListWrap">
+            <div class="script-list" id="scriptList"></div>
+            <div class="empty-state" id="emptyState"></div>
+        </div>
+
+        <!-- 因子列表 -->
+        <div class="script-list-wrap" id="factorListWrap" style="display:none;">
+            <div class="script-list" id="factorList"></div>
+            <div class="empty-state" id="factorEmptyState"></div>
+        </div>
+
+        <!-- 底部日志面板 -->
+        <div class="log-panel" id="logPanel">
+            <div class="log-panel-header">
+                <button class="log-tab active" data-log="normal">日志面板</button>
+                <button class="log-tab" data-log="fight">战斗信息</button>
+                <button class="log-toggle" id="logToggle">⌃</button>
+            </div>
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <!-- 右键菜单 -->
+    <div class="context-menu" id="contextMenu">
+        <button class="context-menu-item" data-action="execute">▶ 执行</button>
+        <button class="context-menu-item" data-action="edit">✎ 编辑</button>
+        <button class="context-menu-item" data-action="rename">🏷 重命名</button>
+        <button class="context-menu-item" data-action="desc">📋 说明</button>
+        <button class="context-menu-item" data-action="settings">⚙ 设置</button>
+        <button class="context-menu-item danger" data-action="delete">🗑 删除</button>
+    </div>
+
+    <!-- 因子菜单 -->
+    <div class="context-menu" id="factorContextMenu">
+        <button class="context-menu-item" data-action="execute">▶ 执行</button>
+        <button class="context-menu-item" data-action="desc">📋 说明</button>
+        <button class="context-menu-item" data-action="settings">⚙ 设置</button>
+    </div>
+
+    <!-- TAB长按菜单 -->
+    <div class="context-menu" id="tabContextMenu">
+        <button class="context-menu-item" data-action="runCategory">▶ 执行此分类</button>
+        <button class="context-menu-item danger" data-action="deleteUnchecked">🗑 删除未选中脚本</button>
+    </div>
+
+    <!-- 批量删除确认浮窗 -->
+    <div class="modal-overlay" id="batchDeleteModal">
+        <div class="modal-dialog">
+            <div style="padding: 24px 20px 16px; text-align: center;">
+                <div style="font-size:17px; font-weight:700; margin-bottom:10px;">确认批量删除</div>
+                <div style="font-size:14px; color:var(--text-secondary);" id="batchDeleteMsg"></div>
+            </div>
+            <div style="padding: 0 20px 20px; display: flex; gap: 10px;">
+                <button class="btn btn-cancel" style="flex:1;" onclick="closeModal('batchDeleteModal')">取消</button>
+                <button class="btn btn-danger-fill" style="flex:1;" id="confirmBatchDelete">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 说明浮窗 -->
+    <div class="modal-overlay" id="descModal">
+        <div class="modal-sheet">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title" id="descTitle">脚本说明</span>
+                <button class="modal-sheet-close" onclick="closeModal('descModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body" id="descContent"></div>
+        </div>
+    </div>
+
+    <!-- 设置浮窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-sheet">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title">脚本设置</span>
+                <button class="modal-sheet-close" onclick="closeModal('settingsModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body" id="settingsContent"></div>
+            <div class="modal-sheet-footer">
+                <button class="btn btn-cancel" onclick="closeModal('settingsModal')">取消</button>
+                <button class="btn btn-primary-fill" id="saveSettings">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 因子设置浮窗 -->
+    <div class="modal-overlay" id="factorSettingsModal">
+        <div class="modal-sheet">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title">因子设置</span>
+                <button class="modal-sheet-close" onclick="closeModal('factorSettingsModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body" id="factorSettingsContent"></div>
+            <div class="modal-sheet-footer">
+                <button class="btn btn-cancel" onclick="closeModal('factorSettingsModal')">取消</button>
+                <button class="btn btn-primary-fill" id="saveFactorSettings">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本编辑浮窗 -->
+    <div class="modal-overlay" id="editorModal">
+        <div class="modal-sheet" style="max-height:92vh;">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title" id="editorTitle">编辑脚本</span>
+                <button class="modal-sheet-close" onclick="closeModal('editorModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body">
+                <div class="setting-item" id="editorFileNameRow">
+                    <label>文件名</label>
+                    <input type="text" id="editorFileName" placeholder="例如：我的脚本.lua">
+                </div>
+                <div class="setting-item">
+                    <label>脚本内容（Lua 明文）</label>
+                    <textarea id="editorArea" spellcheck="false"></textarea>
+                </div>
+            </div>
+            <div class="modal-sheet-footer">
+                <button class="btn btn-cancel" onclick="closeModal('editorModal')">取消</button>
+                <button class="btn btn-primary-fill" id="saveEditor">保存并关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名浮窗 -->
+    <div class="modal-overlay" id="renameModal">
+        <div class="modal-sheet">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title">重命名脚本</span>
+                <button class="modal-sheet-close" onclick="closeModal('renameModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body">
+                <div class="setting-item">
+                    <label>新文件名</label>
+                    <input type="text" id="renameFileName" placeholder="例如：新脚本.lua">
+                </div>
+            </div>
+            <div class="modal-sheet-footer">
+                <button class="btn btn-cancel" onclick="closeModal('renameModal')">取消</button>
+                <button class="btn btn-primary-fill" id="confirmRename">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 删除确认浮窗 -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-sheet">
+            <div class="modal-sheet-header">
+                <span class="modal-sheet-title">确认删除</span>
+                <button class="modal-sheet-close" onclick="closeModal('deleteModal')">✕</button>
+            </div>
+            <div class="modal-sheet-body" id="deleteContent">
+                <p>确定要删除该脚本吗？此操作不可撤销。</p>
+            </div>
+            <div class="modal-sheet-footer">
+                <button class="btn btn-cancel" onclick="closeModal('deleteModal')">取消</button>
+                <button class="btn btn-danger-fill" id="confirmDelete">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 单独运行确认浮窗 -->
+    <div class="modal-overlay" id="tabRunModal">
+        <div class="modal-dialog">
+            <div style="padding: 24px 20px 16px; text-align: center;">
+                <div style="font-size:17px; font-weight:700; margin-bottom:10px;">提示</div>
+                <div style="font-size:14px; color:var(--text-secondary);" id="tabRunMsg"></div>
+            </div>
+            <div style="padding: 0 20px 20px; display: flex; gap: 10px;">
+                <button class="btn btn-cancel" style="flex:1;" onclick="closeModal('tabRunModal')">取消</button>
+                <button class="btn btn-primary-fill" style="flex:1;" id="confirmTabRun">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="stopConfirmModal">
+        <div class="modal-dialog">
+            <div style="padding: 24px 20px 16px; text-align: center;">
+                <div style="font-size:17px; font-weight:700; margin-bottom:10px;">确认中止</div>
+                <div style="font-size:14px; color:var(--text-secondary);">确定要停止正在运行的脚本吗？</div>
+            </div>
+            <div style="padding: 0 20px 20px; display: flex; gap: 10px;">
+                <button class="btn btn-cancel" style="flex:1;" onclick="closeModal('stopConfirmModal')">取消</button>
+                <button class="btn btn-danger-fill" style="flex:1;" id="btnConfirmStop">确定中止</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var currentTab = 'UNITY';
+            var allScripts = [];
+            var currentScripts = [];
+            var scriptProgress = {};
+            var ws = null;
+            var logCollapsed = false;
+            var currentLogTab = 'normal';
+            var contextTarget = null;
+            var fightEditorFiles = { root: [], sub: {} };
+            var fightEditorFilesLoaded = false;
+            var tabLongPressTimer = null;
+            var tabLongPressed = false;
+            var tabLongPressStartX = 0;
+            var tabLongPressStartY = 0;
+            var factorItems = [];
+            var factorContextTarget = -1;
+            var factorSettingsTarget = -1;
+            var factorSettingsData = null;
+            var factorModalMode = 1;
+            var factorStageDraft = [];
+
+            // ===== DOM refs =====
+            var $ = function (id) { return document.getElementById(id); };
+            var scriptList = $('scriptList');
+            var emptyState = $('emptyState');
+            var factorList = $('factorList');
+            var factorEmptyState = $('factorEmptyState');
+            var factorContextMenu = $('factorContextMenu');
+            var logContent = $('logContent');
+            var contextMenu = $('contextMenu');
+            var btnRun = $('btnRun');
+            var btnStop = $('btnStop');
+            var logPanel = $('logPanel');
+            var logToggle = $('logToggle');
+
+            function switchToTab(tabName) {
+                if (tabName === currentTab) return;
+                currentTab = tabName;
+                document.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t.dataset.tab === tabName); });
+                if (tabName === 'FACTOR') {
+                    $('scriptListWrap').style.display = 'none';
+                    $('factorListWrap').style.display = '';
+                    $('btnImport').style.display = 'none';
+                    $('btnNewScript').style.display = 'none';
+                    loadFactors();
+                } else {
+                    $('scriptListWrap').style.display = '';
+                    $('factorListWrap').style.display = 'none';
+                    $('btnImport').style.display = '';
+                    $('btnNewScript').style.display = '';
+                    if (allScripts.length) applyFilter(); else loadScripts();
+                }
+                if (!btnRun.disabled) {
+                    btnRun.textContent = tabName === 'FACTOR' ? '▶ 运行已选因子' : '▶ 全部运行';
+                }
+            }
+
+            // ===== 初始化 =====
+            function migrateLegacyStorage() {
+                var pairs = [
+                    ['studio_account', 'seer_dev_account'],
+                    ['studio_password', 'seer_dev_password'],
+                    ['studio_accounts', 'seer_dev_accounts'],
+                    ['studio_battle_plans', 'seer_dev_battle_plans']
+                ];
+                pairs.forEach(function (p) {
+                    if (!localStorage.getItem(p[0]) && localStorage.getItem(p[1])) {
+                        localStorage.setItem(p[0], localStorage.getItem(p[1]));
+                    }
+                });
+            }
+
+            function init() {
+                migrateLegacyStorage();
+                var acc = localStorage.getItem('studio_account');
+                var pwd = localStorage.getItem('studio_password');
+                if (acc) $('account').value = acc;
+                if (pwd) $('password').value = pwd;
+
+                $('account').addEventListener('input', function () {
+                    this.value = this.value.replace(/\D/g, '');
+                    localStorage.setItem('studio_account', this.value);
+                });
+                $('password').addEventListener('input', function () {
+                    localStorage.setItem('studio_password', this.value);
+                });
+
+                // 账号下拉管理
+                function getSavedAccounts() {
+                    try { return JSON.parse(localStorage.getItem('studio_accounts') || '[]'); }
+                    catch (e) { return []; }
+                }
+                window._getSeerSavedAccounts = getSavedAccounts;
+
+                function saveAccountToList(acc, pwd) {
+                    if (!acc || !pwd) return;
+                    var accounts = getSavedAccounts();
+                    accounts = accounts.filter(function (a) { return a.account !== acc; });
+                    accounts.unshift({ account: acc, password: pwd });
+                    if (accounts.length > 20) accounts = accounts.slice(0, 20);
+                    localStorage.setItem('studio_accounts', JSON.stringify(accounts));
+                }
+                window._saveSeerAccountToList = saveAccountToList;
+
+                function deleteAccountFromList(acc) {
+                    var accounts = getSavedAccounts();
+                    accounts = accounts.filter(function (a) { return a.account !== acc; });
+                    localStorage.setItem('studio_accounts', JSON.stringify(accounts));
+                    renderAccountDropdown();
+                }
+
+                function renderAccountDropdown() {
+                    var dropdown = $('accountDropdown');
+                    var accounts = getSavedAccounts();
+                    if (accounts.length === 0) {
+                        dropdown.innerHTML = '<div class="account-option" style="color:var(--text-muted);cursor:default;">暂无已保存账号</div>';
+                    } else {
+                        dropdown.innerHTML = accounts.map(function (a) {
+                            return '<div class="account-option" data-account="' + escHtml(a.account) + '">' +
+                                '<span class="account-text">' + escHtml(a.account) + '</span>' +
+                                '<span class="account-delete" data-account="' + escHtml(a.account) + '">✕</span>' +
+                                '</div>';
+                        }).join('');
+                    }
+                }
+
+                function showAccountDropdown() {
+                    renderAccountDropdown();
+                    $('accountDropdown').classList.add('show');
+                }
+
+                function hideAccountDropdown() {
+                    $('accountDropdown').classList.remove('show');
+                }
+
+                $('account').addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    showAccountDropdown();
+                });
+                $('accountArrow').addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    var dd = $('accountDropdown');
+                    if (dd.classList.contains('show')) hideAccountDropdown();
+                    else showAccountDropdown();
+                });
+                $('accountDropdown').addEventListener('click', function (e) {
+                    var deleteBtn = e.target.closest('.account-delete');
+                    if (deleteBtn) {
+                        e.stopPropagation();
+                        deleteAccountFromList(deleteBtn.dataset.account);
+                        return;
+                    }
+                    var option = e.target.closest('.account-option');
+                    if (!option || !option.dataset.account) return;
+                    var targetAcc = option.dataset.account;
+                    var accounts = getSavedAccounts();
+                    var found = accounts.find(function (a) { return a.account === targetAcc; });
+                    if (found) {
+                        $('account').value = found.account;
+                        $('password').value = found.password;
+                        localStorage.setItem('studio_account', found.account);
+                        localStorage.setItem('studio_password', found.password);
+                    }
+                    hideAccountDropdown();
+                });
+                document.addEventListener('click', function (e) {
+                    var wrap = document.querySelector('.account-dropdown-wrapper');
+                    if (wrap && !wrap.contains(e.target)) hideAccountDropdown();
+                });
+
+                $('togglePwd').addEventListener('click', function () {
+                    var pwd = $('password');
+                    var isOpen = pwd.type === 'text';
+                    pwd.type = isOpen ? 'password' : 'text';
+                    this.textContent = isOpen ? '👁' : '🙈';
+                });
+
+                // Tab长按
+                document.querySelectorAll('.tab').forEach(bindTabLongPress);
+
+                // 标签切换
+                $('tabs').addEventListener('click', function (e) {
+                    if (tabLongPressed) { tabLongPressed = false; e.stopPropagation(); return; }
+                    var tab = e.target.closest('.tab');
+                    if (!tab) return;
+                    switchToTab(tab.dataset.tab);
+                });
+
+
+
+                // 运行/停止
+                btnRun.addEventListener('click', startRun);
+                btnStop.addEventListener('click', stopRun);
+                $('btnConfirmStop').addEventListener('click', confirmStop);
+
+                $('btnImport').addEventListener('click', function () {
+                    $('importFile').click();
+                });
+                $('importFile').addEventListener('change', function () {
+                    if (this.files.length) {
+                        importFiles(this.files);
+                        this.value = '';
+                    }
+                });
+                $('btnNewScript').addEventListener('click', showNewScript);
+                $('saveEditor').addEventListener('click', saveEditor);
+                $('confirmRename').addEventListener('click', confirmRename);
+
+                // 日志面板
+                logToggle.addEventListener('click', function () {
+                    logCollapsed = !logCollapsed;
+                    logPanel.classList.toggle('collapsed', logCollapsed);
+                    this.textContent = logCollapsed ? '⌄' : '⌃';
+                });
+                logPanel.querySelector('.log-panel-header').addEventListener('click', function (e) {
+                    var tab = e.target.closest('.log-tab');
+                    if (!tab) return;
+                    switchLogTab(tab.dataset.log);
+                });
+
+                // 右键菜单
+                contextMenu.addEventListener('click', function (e) {
+                    var item = e.target.closest('.context-menu-item');
+                    if (!item) return;
+                    var action = item.dataset.action;
+                    hideContextMenu();
+                    if (action === 'execute') executeSingleScript();
+                    else if (action === 'edit') showEditScript();
+                    else if (action === 'rename') showRenameScript();
+                    else if (action === 'desc') showDesc();
+                    else if (action === 'settings') showSettings();
+                    else if (action === 'delete') showDelete();
+                });
+
+                // 因子菜单
+                factorContextMenu.addEventListener('click', function (e) {
+                    var item = e.target.closest('.context-menu-item');
+                    if (!item) return;
+                    var action = item.dataset.action;
+                    hideFactorContextMenu();
+                    if (action === 'execute') executeFactorItem();
+                    else if (action === 'desc') showFactorDesc();
+                    else if (action === 'settings') showFactorSettings();
+                });
+
+                // TAB长按菜单
+                tabContextMenu.addEventListener('click', function (e) {
+                    var item = e.target.closest('.context-menu-item');
+                    if (!item) return;
+                    var action = item.dataset.action;
+                    hideTabContextMenu();
+                    if (action === 'runCategory') showTabRunModal(tabContextTarget);
+                    else if (action === 'deleteUnchecked' && tabContextTarget !== 'FACTOR') showBatchDelete(tabContextTarget);
+                });
+
+                // 设置保存
+                $('saveSettings').addEventListener('click', saveSettings);
+                $('saveFactorSettings').addEventListener('click', saveFactorSettings);
+                $('confirmDelete').addEventListener('click', confirmDelete);
+                $('confirmTabRun').addEventListener('click', function () {
+                    startTabRun(this.dataset.tab);
+                });
+                $('confirmBatchDelete').addEventListener('click', confirmBatchDelete);
+
+                // 全局点击关闭
+                document.addEventListener('click', function (e) {
+                    if (!contextMenu.contains(e.target)) hideContextMenu();
+                    if (!factorContextMenu.contains(e.target)) hideFactorContextMenu();
+                    if (!tabContextMenu.contains(e.target)) hideTabContextMenu();
+                });
+
+                initWebSocket();
+                checkStatus();
+                loadScripts();
+            }
+
+            // ===== WebSocket =====
+            function initWebSocket() {
+                var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(proto + '//' + location.host + '/ws');
+                ws.onmessage = function (e) {
+                    try {
+                        var data = JSON.parse(e.data);
+                        if (data.Cmd === 'studio:log') {
+                            var log = JSON.parse(data.Msg);
+                            addLogEntry(log);
+                        } else if (data.Cmd === 'studio:fight') {
+                            var log = JSON.parse(data.Msg);
+                            addFightEntry(log);
+                        } else if (data.Cmd === 'studio:progress') {
+                            var p = JSON.parse(data.Msg);
+                            if (p.status === 'running') {
+                                scriptProgress[p.file] = 'running';
+                                if (p.type && p.type !== currentTab && (p.type === 'UNITY' || p.type === 'FLASH')) {
+                                    switchToTab(p.type);
+                                }
+                            } else {
+                                scriptProgress[p.file] = p.status;
+                            }
+                            if (p.type === 'FACTOR') {
+                                if (currentTab === 'FACTOR') renderFactorList();
+                            } else {
+                                renderScriptList();
+                            }
+                        } else if (data.Cmd === 'studio:end') {
+                            btnRun.disabled = false;
+                            btnStop.disabled = true;
+                            btnRun.textContent = currentTab === 'FACTOR' ? '▶ 运行已选因子' : '▶ 全部运行';
+                            if (currentTab === 'FACTOR') renderFactorList();
+                            else renderScriptList();
+                        }
+                    } catch (_) { }
+                };
+                ws.onclose = function () { setTimeout(initWebSocket, 3000); };
+            }
+
+            function checkStatus() {
+                fetch('/studio/status').then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.running) {
+                        btnRun.disabled = true;
+                        btnStop.disabled = false;
+                        btnRun.textContent = '⏳ 运行中...';
+                    }
+                    // 恢复日志
+                    var hasLogs = (data.logs && data.logs.length) || (data.fightLogs && data.fightLogs.length);
+                    if (data.logs && data.logs.length) { window._logEntries = data.logs; }
+                    if (data.fightLogs && data.fightLogs.length) { window._fightEntries = data.fightLogs; }
+                    renderLogs();
+                    // 日志为空时显示操作提示
+                    if (!hasLogs) {
+                        window._logEntries.push({ level: 'INFO', message: '[提示] 脚本以明文 .lua 保存在 data/lua/unity 或 data/lua/flash 目录，程序会按 Type 自动归档' });
+                        window._logEntries.push({ level: 'INFO', message: '[提示] 战斗方案只读取 data/scripts 目录，请先在战斗方案编辑器中维护' });
+                        window._logEntries.push({ level: 'INFO', message: '[提示] 长按 UNITY/FLASH 标签可单独运行该分类，或删除未选中脚本' });
+                        window._logEntries.push({ level: 'INFO', message: '[提示] 因子任务无需脚本：勾选后点“运行已选因子”执行所有已勾选因子' });
+                        renderLogs();
+                    }
+                    // 恢复进度
+                    if (data.progress && data.progress.length) {
+                        data.progress.forEach(function (p) {
+                            scriptProgress[p.file] = p.status;
+                        });
+                        // 自动切换到正在运行的任务所在 tab
+                        var running = data.progress.find(function (p) { return p.status === 'running'; });
+                        if (running && running.type === 'FACTOR' && currentTab !== 'FACTOR') {
+                            switchToTab('FACTOR');
+                        } else if (running && running.type && running.type !== currentTab && (running.type === 'UNITY' || running.type === 'FLASH')) {
+                            switchToTab(running.type);
+                        } else if (currentTab === 'FACTOR') {
+                            renderFactorList();
+                        } else {
+                            renderScriptList();
+                        }
+                    }
+                }).catch(function () { });
+            }
+
+            // ===== 脚本加载 =====
+            function loadScripts() {
+                fetch('/studio/scripts').then(function (r) { return r.json(); }).then(function (data) {
+                    allScripts = data || [];
+                    applyFilter();
+                }).catch(function (e) {
+                    allScripts = [];
+                    applyFilter();
+                });
+            }
+
+            function applyFilter() {
+                if (currentTab === 'UNITY' || currentTab === 'FLASH') {
+                    currentScripts = allScripts.filter(function (s) { return s.type === currentTab; });
+                } else {
+                    currentScripts = [];
+                }
+                renderScriptList();
+                setupDragDrop();
+            }
+
+            function renderScriptList() {
+                if (!currentScripts.length) {
+                    scriptList.innerHTML = '';
+                    emptyState.innerHTML = '<div>暂无脚本</div><div style="font-size:12px;margin-top:4px;">点击“新建”创建脚本，或将明文 .lua 文件放入 data/lua/unity 或 data/lua/flash 目录</div>';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                emptyState.style.display = 'none';
+                var html = '';
+                currentScripts.forEach(function (s, i) {
+                    var enabled = s.enabled !== false;
+                    var status = scriptProgress[s.file] || 'pending';
+                    var statusText = { running: '🔄', success: '✅', failed: '❌', stopped: '⏹', pending: '' }[status];
+                    var statusClass = 'status-' + status;
+                    var typeLabel = s.type || '未知';
+                    var typeClass = s.error ? 'invalid' : (s.type === 'FLASH' ? 'flash' : '');
+                    html += '<div class="script-item" data-index="' + i + '" data-file="' + escHtml(s.file) + '">' +
+                        '<span class="drag-handle" title="拖动排序">⋮⋮</span>' +
+                        '<input type="checkbox" class="script-checkbox"' + (enabled ? ' checked' : '') + '>' +
+                        '<div class="script-info">' +
+                        '<div class="script-name" title="' + escHtml(s.error || s.file) + '">' + escHtml(s.name || s.file) + '</div>' +
+                        '<div class="script-meta">' +
+                        '<span class="script-type ' + typeClass + '">' + escHtml(typeLabel) + '</span>' +
+                        '<span>' + escHtml(s.author || '匿名') + '</span>' +
+                        '<span class="script-version">v' + escHtml(s.version || '0.0.1') + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<span class="script-status ' + statusClass + '">' + statusText + '</span>' +
+                        '<span class="script-menu-btn">⋯</span>' +
+                        '</div>';
+                });
+                scriptList.innerHTML = html;
+
+                // 事件绑定
+                scriptList.querySelectorAll('.script-checkbox').forEach(function (cb) {
+                    cb.addEventListener('change', function () {
+                        var item = cb.closest('.script-item');
+                        var idx = parseInt(item.dataset.index);
+                        var file = currentScripts[idx].file;
+                        currentScripts[idx].enabled = cb.checked;
+                        fetch('/studio/enabled?file=' + encodeURIComponent(file), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ enabled: cb.checked })
+                        });
+                        var original = allScripts.find(function (s) { return s.file === file; });
+                        if (original) original.enabled = cb.checked;
+                    });
+                });
+
+                scriptList.querySelectorAll('.script-menu-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        var item = btn.closest('.script-item');
+                        contextTarget = parseInt(item.dataset.index);
+                        showContextMenu(e);
+                    });
+                });
+            }
+
+            // ===== 右键菜单 =====
+            function showContextMenu(e) {
+                var x = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                var y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                // 保持在屏幕内
+                var menuW = 170, menuH = 260;
+                if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+                if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+                contextMenu.style.left = Math.max(8, x) + 'px';
+                contextMenu.style.top = Math.max(8, y) + 'px';
+                contextMenu.classList.add('active');
+            }
+            function hideContextMenu() { contextMenu.classList.remove('active'); }
+
+            // ===== 浮窗操作 =====
+            function showDesc() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                $('descTitle').textContent = '脚本说明';
+                $('descContent').innerHTML = s.desc
+                    ? '<p>' + escHtml(s.desc).replace(/\n/g, '<br>') + '</p>'
+                    : '<p style="color:var(--text-muted)">该脚本没有提供说明。</p>';
+                openModal('descModal');
+            }
+
+            var NEW_SCRIPT_TEMPLATE = '---@type SeerMain\n' +
+                'function Main(seer, config)\n' +
+                '    logger.Info("Hello Suffocat")\n' +
+                '    return true\n' +
+                'end\n\n' +
+                '---@type SeerScript\n' +
+                'return {\n' +
+                '    Type = "UNITY",\n' +
+                '    Name = "新脚本",\n' +
+                '    Author = "",\n' +
+                '    Desc = "",\n' +
+                '    Version = "0.0.1",\n' +
+                '    Main = Main,\n' +
+                '    Setup = function(cr)\n' +
+                '    end,\n' +
+                '}\n';
+
+            function showNewScript() {
+                contextTarget = null;
+                $('editorTitle').textContent = '新建脚本';
+                $('editorFileNameRow').style.display = '';
+                $('editorFileName').value = '';
+                $('editorArea').value = NEW_SCRIPT_TEMPLATE;
+                openModal('editorModal');
+            }
+
+            function showEditScript() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                fetch('/studio/script?file=' + encodeURIComponent(s.file))
+                    .then(function (r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.text();
+                    })
+                    .then(function (text) {
+                        $('editorTitle').textContent = '编辑脚本：' + s.file;
+                        $('editorFileNameRow').style.display = 'none';
+                        $('editorFileName').value = s.file;
+                        $('editorArea').value = text;
+                        openModal('editorModal');
+                    })
+                    .catch(function (e) { showToast('读取失败: ' + e.message); });
+            }
+
+            function saveEditor() {
+                var fileName = $('editorFileName').value.trim();
+                if (!fileName) { showToast('请输入文件名'); return; }
+                var source = $('editorArea').value;
+
+                fetch('/studio/script', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file: fileName, script: source })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) { showToast('保存失败: ' + data.error); return; }
+                    closeModal('editorModal');
+                    showToast('已保存');
+                    loadScripts();
+                }).catch(function (e) { showToast('保存失败: ' + e.message); });
+            }
+
+            function showRenameScript() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                $('renameFileName').value = s.file;
+                openModal('renameModal');
+            }
+
+            function confirmRename() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                var newName = $('renameFileName').value.trim();
+                if (!newName) { showToast('请输入新文件名'); return; }
+
+                fetch('/studio/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old: s.file, new: newName })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) { showToast('重命名失败: ' + data.error); return; }
+                    closeModal('renameModal');
+                    showToast('已重命名');
+                    loadScripts();
+                }).catch(function (e) { showToast('重命名失败: ' + e.message); });
+            }
+
+            function showSettings() {
+                var s = currentScripts[contextTarget];
+                if (!s || !s.hasSetup) {
+                    $('settingsContent').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">该脚本没有可设置项。</p>';
+                    $('saveSettings').style.display = 'none';
+                    openModal('settingsModal');
+                    return;
+                }
+                $('saveSettings').style.display = '';
+                $('settingsContent').innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</p>';
+                openModal('settingsModal');
+
+                loadFightEditorFiles(function () {
+                    fetch('/studio/config?file=' + encodeURIComponent(s.file))
+                        .then(function (r) { return r.json(); })
+                        .then(renderSettings)
+                        .catch(function (e) {
+                            $('settingsContent').innerHTML = '<p style="color:var(--danger)">加载设置失败: ' + escHtml(e.message) + '</p>';
+                        });
+                });
+            }
+
+
+            function loadFightEditorFiles(cb) {
+                if (fightEditorFilesLoaded) { cb(); return; }
+                fetch("/fight_editor/all_scripts").then(function (r) { return r.json(); }).then(function (root) {
+                    fightEditorFiles = { root: [], sub: {} };
+                    function walk(nodes) {
+                        if (!nodes) return;
+                        nodes.forEach(function (n) {
+                            if (n.Files) n.Files.forEach(function (f) {
+                                if (n.Name) {
+                                    if (!fightEditorFiles.sub[n.Name]) fightEditorFiles.sub[n.Name] = [];
+                                    fightEditorFiles.sub[n.Name].push(f);
+                                } else {
+                                    fightEditorFiles.root.push(f);
+                                }
+                            });
+                            if (n.ChildNode) walk(n.ChildNode);
+                        });
+                    }
+                    walk([root]);
+                    fightEditorFilesLoaded = true;
+                    cb();
+                }).catch(function () { cb(); });
+            }
+
+            function fillFightSelect(sel) {
+                var html = '<option value="">-- 选择本地战斗方案 --</option>';
+                if (fightEditorFiles.root.length > 0) {
+                    html += '<optgroup label="根目录">';
+                    fightEditorFiles.root.forEach(function (f) {
+                        html += '<option value="' + escHtml(f) + '">' + escHtml(f) + '</option>';
+                    });
+                    html += '</optgroup>';
+                }
+                Object.keys(fightEditorFiles.sub).sort().forEach(function (subDir) {
+                    html += '<optgroup label="' + escHtml(subDir) + '">';
+                    fightEditorFiles.sub[subDir].forEach(function (f) {
+                        var fullPath = subDir + "/" + f;
+                        html += '<option value="' + escHtml(fullPath) + '">' + escHtml(fullPath) + '</option>';
+                    });
+                    html += '</optgroup>';
+                });
+                sel.innerHTML = html;
+            }
+            function renderSettings(configs) {
+                if (configs && configs.error) {
+                    $('settingsContent').innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px;">加载设置失败：' + escHtml(configs.error) + '</p>';
+                    $('saveSettings').style.display = 'none';
+                    return;
+                }
+                if (!configs || !configs.length) {
+                    $('settingsContent').innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">该脚本没有可设置项。</p>';
+                    $('saveSettings').style.display = 'none';
+                    return;
+                }
+                var html = '';
+                configs.forEach(function (c) {
+                    var key = c.key;
+                    html += '<div class="setting-item" data-key="' + escHtml(key) + '" data-type="' + c.type + '">';
+                    html += '<label>' + escHtml(c.desc || key) + '</label>';
+                    switch (c.type) {
+                        case 0: // Checkbox
+                            html += '<div class="toggle-row"><div class="toggle-switch' + (c.value ? ' on' : '') + '" onclick="toggleSwitch(this)"></div></div>';
+                            break;
+                        case 1: // Input
+                            html += '<input type="text" value="' + escHtml(String(c.value || '')) + '">';
+                            break;
+                        case 2: // Select — 芯片单选
+                            html += '<div class="multi-select-chips single-select">';
+                            (c.options || []).forEach(function (opt) {
+                                var sel = c.value === opt;
+                                html += '<span class="chip' + (sel ? ' selected' : '') + '" data-val="' + escHtml(opt) + '" onclick="selectChip(this)">' + escHtml(opt) + '</span>';
+                            });
+                            html += '</div>';
+                            break;
+                        case 3: // MultiSelect
+                            var vals = c.value || [];
+                            if (typeof vals === 'string') vals = [vals];
+                            html += '<div class="multi-select-chips">';
+                            (c.options || []).forEach(function (opt) {
+                                var sel = vals.indexOf(opt) >= 0;
+                                html += '<span class="chip' + (sel ? ' selected' : '') + '" data-val="' + escHtml(opt) + '" onclick="toggleChip(this)">' + escHtml(opt) + '</span>';
+                            });
+                            html += '</div>';
+                            break;
+                        case 4: // FightScript
+                            html += '<select class="fight-select" onchange="" data-key="' + escHtml(key) + '">';
+                            html += '</select>';
+                            break;
+                        case 5: // NumberInput
+                            var min = (c.options && c.options[0] != null) ? parseInt(c.options[0]) : '';
+                            var max = (c.options && c.options[1] != null) ? parseInt(c.options[1]) : '';
+                            var step = (c.options && c.options[2] != null) ? parseInt(c.options[2]) : 1;
+                            var v = c.value != null ? parseInt(c.value) : (min !== '' ? min : 0);
+                            html += '<div class="number-input-row">';
+                            html += '<input type="number" value="' + v + '" min="' + min + '" max="' + max + '" step="' + step + '" oninput="this.value=this.value.replace(/[^0-9\\-]/g,\'\')" onblur="clampNumber(this)">';
+                            html += '<div class="number-spinners">';
+                            html += '<button class="spinner-btn spinner-up" onclick="spinNumber(this, 1)">▲</button>';
+                            html += '<button class="spinner-btn spinner-down" onclick="spinNumber(this, -1)">▼</button>';
+                            html += '</div>';
+                            html += '</div>';
+                            break;
+                    }
+                    html += '</div>';
+                });
+                $('settingsContent').innerHTML = html;
+                // 填充战斗方案下拉
+                document.querySelectorAll('.fight-select').forEach(function (sel) {
+                    fillFightSelect(sel);
+                    var key = sel.dataset.key;
+                    var found = configs.find(function (c) { return c.key === key; });
+                    if (found) sel.value = found.value || '';
+                });
+            }
+
+            function toggleSwitch(el) {
+                el.classList.toggle('on');
+            }
+            function toggleChip(el) {
+                el.classList.toggle('selected');
+            }
+            function selectChip(el) {
+                el.parentElement.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('selected'); });
+                el.classList.add('selected');
+            }
+            function spinNumber(btn, dir) {
+                var row = btn.closest('.number-input-row');
+                var input = row.querySelector('input[type="number"]');
+                var step = parseInt(input.step) || 1;
+                var val = parseInt(input.value);
+                if (isNaN(val)) val = 0;
+                var newVal = val + dir * step;
+                if (input.min !== '') newVal = Math.max(newVal, parseInt(input.min));
+                if (input.max !== '') newVal = Math.min(newVal, parseInt(input.max));
+                input.value = newVal;
+            }
+            function clampNumber(input) {
+                var val = parseInt(input.value);
+                if (isNaN(val)) {
+                    val = (input.min !== '') ? parseInt(input.min) : 0;
+                }
+                if (input.min !== '') val = Math.max(val, parseInt(input.min));
+                if (input.max !== '') val = Math.min(val, parseInt(input.max));
+                input.value = val;
+            }
+            window.toggleSwitch = toggleSwitch;
+            window.toggleChip = toggleChip;
+            window.selectChip = selectChip;
+            window.spinNumber = spinNumber;
+            window.clampNumber = clampNumber;
+
+            function saveSettings() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                var configs = {};
+                $('settingsContent').querySelectorAll('.setting-item').forEach(function (item) {
+                    var key = item.dataset.key;
+                    var type = parseInt(item.dataset.type);
+                    var value;
+                    switch (type) {
+                        case 0:
+                            value = item.querySelector('.toggle-switch').classList.contains('on');
+                            break;
+                        case 1:
+                            value = item.querySelector('input').value;
+                            break;
+                        case 2:
+                            var sel = item.querySelector('.chip.selected');
+                            value = sel ? sel.dataset.val : '';
+                            break;
+                        case 3:
+                            value = [];
+                            item.querySelectorAll('.chip.selected').forEach(function (chip) {
+                                value.push(chip.dataset.val);
+                            });
+                            break;
+                        case 4:
+                            value = item.querySelector('select').value;
+                            break;
+                        case 5:
+                            value = parseInt(item.querySelector('input').value);
+                            if (isNaN(value)) {
+                                var inp = item.querySelector('input');
+                                value = (inp.min !== '') ? parseInt(inp.min) : 0;
+                            }
+                            break;
+                    }
+                    configs[key] = { value: value };
+                });
+
+                fetch('/studio/config?file=' + encodeURIComponent(s.file), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(configs)
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.ok) closeModal('settingsModal');
+                });
+            }
+
+            function showDelete() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                $('deleteContent').innerHTML = '<p>确定要删除脚本 <strong>' + escHtml(s.name || s.file) + '</strong> 吗？此操作不可撤销。</p>';
+                openModal('deleteModal');
+            }
+
+            function confirmDelete() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                fetch('/studio/script?file=' + encodeURIComponent(s.file), { method: 'DELETE' })
+                    .then(function (r) { return r.json(); }).then(function (data) {
+                        if (data.ok) {
+                            closeModal('deleteModal');
+                            refreshAfterDelete();
+                            loadScripts();
+                        }
+                    });
+            }
+
+            function openModal(id) {
+                $(id).classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeModal(id) {
+                $(id).classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            window.openModal = openModal;
+            window.closeModal = closeModal;
+            // 点击遮罩关闭
+            document.querySelectorAll('.modal-overlay').forEach(function (ov) {
+                ov.addEventListener('click', function (e) {
+                    if (e.target === ov) closeModal(ov.id);
+                });
+            });
+
+            // ===== 拖拽排序 =====
+            var dragIdx = -1, overIdx = -1, dragListenersBound = false;
+
+            function setupDragDrop() {
+                dragIdx = -1;
+                overIdx = -1;
+
+                var items = scriptList.querySelectorAll('.script-item');
+                items.forEach(function (item) {
+                    var handle = item.querySelector('.drag-handle');
+                    if (!handle) return;
+
+                    handle.addEventListener('touchstart', function (e) {
+                        dragIdx = parseInt(item.dataset.index);
+                        item.classList.add('dragging');
+                        e.preventDefault();
+                    }, { passive: false });
+
+                    handle.addEventListener('mousedown', function (e) {
+                        dragIdx = parseInt(item.dataset.index);
+                        item.classList.add('dragging');
+                        e.preventDefault();
+                    });
+                });
+
+                // 列表级事件只绑定一次，避免每次渲染重复注册。
+                if (dragListenersBound) return;
+                dragListenersBound = true;
+
+                scriptList.addEventListener('touchmove', function (e) {
+                    if (dragIdx < 0) return;
+                    var touch = e.touches[0];
+                    var target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    var overItem = target ? target.closest('.script-item') : null;
+                    if (overItem) {
+                        document.querySelectorAll('.script-item').forEach(function (it) { it.classList.remove('drag-over'); });
+                        overItem.classList.add('drag-over');
+                        overIdx = parseInt(overItem.dataset.index);
+                    }
+                    e.preventDefault();
+                }, { passive: false });
+
+                scriptList.addEventListener('mousemove', function (e) {
+                    if (dragIdx < 0) return;
+                    document.querySelectorAll('.script-item').forEach(function (it) { it.classList.remove('drag-over'); });
+                    var overItem = e.target.closest('.script-item');
+                    if (overItem) {
+                        overItem.classList.add('drag-over');
+                        overIdx = parseInt(overItem.dataset.index);
+                    }
+                });
+
+                function endDrag() {
+                    if (dragIdx >= 0 && overIdx >= 0 && dragIdx !== overIdx) {
+                        var moved = currentScripts.splice(dragIdx, 1)[0];
+                        currentScripts.splice(overIdx, 0, moved);
+                        mergeOrderIntoAllScripts();
+                        saveOrder();
+                        renderScriptList();
+                        setupDragDrop();
+                    }
+                    document.querySelectorAll('.script-item').forEach(function (it) { it.classList.remove('dragging', 'drag-over'); });
+                    dragIdx = -1;
+                    overIdx = -1;
+                }
+
+                scriptList.addEventListener('touchend', endDrag);
+                scriptList.addEventListener('mouseup', endDrag);
+            }
+
+            // 将当前分类的排序合并回全局顺序，保留另一分类的相对位置。
+            function mergeOrderIntoAllScripts() {
+                var queue = currentScripts.slice();
+                var merged = [];
+                allScripts.forEach(function (s) {
+                    if (s.type === currentTab) {
+                        if (queue.length) merged.push(queue.shift());
+                    } else {
+                        merged.push(s);
+                    }
+                });
+                while (queue.length) merged.push(queue.shift());
+                allScripts = merged;
+            }
+
+            function saveOrder() {
+                var files = allScripts.map(function (s) { return s.file; });
+                fetch('/studio/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: files })
+                });
+            }
+
+            function refreshAfterDelete() {
+                currentScripts = [];
+                loadScripts();
+            }
+
+            // ===== 日志 =====
+            window._logEntries = [];
+            window._fightEntries = [];
+
+            function switchLogTab(tab) {
+                currentLogTab = tab;
+                document.querySelectorAll('.log-tab').forEach(function (t) { t.classList.toggle('active', t.dataset.log === tab); });
+                renderLogs();
+            }
+
+            function addLogEntry(log) {
+                window._logEntries.push(log);
+                if (window._logEntries.length > 500) window._logEntries = window._logEntries.slice(-500);
+                if (currentLogTab !== 'normal') switchLogTab('normal');
+                else appendLogToDOM(log);
+            }
+            function addFightEntry(log) {
+                window._fightEntries.push(log);
+                if (window._fightEntries.length > 500) window._fightEntries = window._fightEntries.slice(-500);
+                if (currentLogTab !== 'fight') switchLogTab('fight');
+                else appendFightToDOM(log);
+            }
+
+            // 战斗事件解析与渲染
+            function parseFightEvent(msg) {
+                var idx = msg.indexOf('{"type":');
+                if (idx < 0) return null;
+                try { return JSON.parse(msg.substring(idx)); }
+                catch (e) { return null; }
+            }
+
+            function renderFightEvent(e) {
+                switch (e.type) {
+                    case 'start': return renderFightStart(e);
+                    case 'round': return '<div class="fight-round">— 回合 ' + e.round + ' —</div>';
+                    case 'skill': return renderSkill(e);
+                    case 'pet_in': return renderPetIn(e);
+                    case 'pet_out': return renderPetOut(e);
+                    case 'item': return renderItem(e);
+                    case 'over': return renderFightOver(e);
+                    default: return '';
+                }
+            }
+
+            function renderHpBar(hp, maxHp) {
+                var pct = maxHp > 0 ? Math.round(hp / maxHp * 100) : 0;
+                var cls = maxHp === 0 ? 'dead' : pct > 50 ? 'high' : pct > 25 ? 'mid' : 'low';
+                var text = maxHp > 0 ? hp + '/' + maxHp : '战败';
+                return '<div class="hp-bar-wrap">' +
+                    '<div class="hp-bar"><div class="hp-bar-fill ' + cls + '" style="width:' + pct + '%"></div></div>' +
+                    '<span class="hp-text">' + text + '</span></div>';
+            }
+
+            function renderFightStart(e) {
+                var html = '<div class="fight-card"><div class="fight-card-title">⚔ 战斗开始</div>';
+                // 我方所有精灵
+                if (e.playerPets) {
+                    for (var i = 0; i < e.playerPets.length; i++) {
+                        html += '<div class="fight-pet-row">' +
+                            '<span class="pet-tag player">我方</span>' +
+                            '<span class="pet-name">' + escHtml(e.playerPets[i].name) + '</span>' +
+                            renderHpBar(e.playerPets[i].hp, e.playerPets[i].maxHp) + '</div>';
+                    }
+                }
+                // 敌方所有精灵
+                if (e.enemyPets) {
+                    for (var i = 0; i < e.enemyPets.length; i++) {
+                        html += '<div class="fight-pet-row">' +
+                            '<span class="pet-tag enemy">敌方</span>' +
+                            '<span class="pet-name">' + escHtml(e.enemyPets[i].name) + '</span>' +
+                            renderHpBar(e.enemyPets[i].hp, e.enemyPets[i].maxHp) + '</div>';
+                    }
+                }
+                html += '</div>';
+                return html;
+            }
+
+            function renderSkill(e) {
+                var tags = e.isPlayer ? { cls: 'player', txt: '我方' } : { cls: 'enemy', txt: '敌方' };
+                var s = e.skill;
+                var html = '<div class="fight-skill-row">' +
+                    '<span class="pet-tag ' + tags.cls + '">' + tags.txt + '</span>' +
+                    '<span class="pet-name">' + escHtml(e.pet.name) + '</span>';
+                if (s.name) {
+                    html += '<span class="skill-name">' + escHtml(s.name) + '</span>';
+                    html += '<span class="skill-damage">造成 ' + s.damage + ' 伤害</span>';
+                    if (s.isCrit) html += '<span class="skill-crit">暴击!</span>';
+                    var extras = [];
+                    if (s.gainDmg > 0) extras.push('粉伤+' + s.gainDmg);
+                    if (s.realDmg > 0) extras.push('真伤+' + s.realDmg);
+                    if (s.zhuiDmg > 0) extras.push('追击+' + s.zhuiDmg);
+                    if (extras.length) html += '<span class="skill-extra">' + extras.join(' ') + '</span>';
+                } else {
+                    html += '<span class="skill-noop">未使用技能</span>';
+                }
+                html += '</div>';
+                html += '<div class="fight-skill-hp">' + renderHpBar(s.petHp, s.petMaxHp) + '</div>';
+                return html;
+            }
+
+            function renderPetIn(e) {
+                var tags = e.isPlayer ? { cls: 'player', txt: '我方' } : { cls: 'enemy', txt: '敌方' };
+                return '<div class="fight-pet-in">' +
+                    '<span class="pet-tag ' + tags.cls + '">' + tags.txt + '</span>' +
+                    '<span class="pet-name">' + escHtml(e.pet.name) + '</span> 出场' +
+                    '<div class="fight-skill-hp">' + renderHpBar(e.pet.hp, e.pet.maxHp) + '</div></div>';
+            }
+
+            function renderPetOut(e) {
+                var tags = e.isPlayer ? { cls: 'player', txt: '我方' } : { cls: 'enemy', txt: '敌方' };
+                return '<div class="fight-pet-out">' +
+                    '<span class="pet-tag ' + tags.cls + '">' + tags.txt + '</span>' +
+                    '<span class="pet-name">' + escHtml(e.pet.name) + '</span> 战败 ✘</div>';
+            }
+
+            function renderItem(e) {
+                var tags = e.isPlayer ? { cls: 'player', txt: '我方' } : { cls: 'enemy', txt: '敌方' };
+                return '<div class="fight-item">' +
+                    '<span class="pet-tag ' + tags.cls + '">' + tags.txt + '</span> 使用了 ' + escHtml(e.item.name) + '</div>';
+            }
+
+            function renderFightOver(e) {
+                if (e.escape) return '<div class="fight-over escape">⇐ 战斗撤退</div>';
+                if (e.win) return '<div class="fight-over win">✔ 战斗胜利</div>';
+                return '<div class="fight-over lose">✘ 战斗失败</div>';
+            }
+
+            function appendFightToDOM(log) {
+                var div = document.createElement('div');
+                var event = parseFightEvent(log.message);
+                if (event) {
+                    div.className = 'fight-entry';
+                    div.innerHTML = renderFightEvent(event);
+                } else {
+                    div.className = 'log-entry log-' + log.level;
+                    div.textContent = log.message;
+                }
+                logContent.appendChild(div);
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+
+            function appendLogToDOM(log) {
+                var div = document.createElement('div');
+                div.className = 'log-entry log-' + log.level;
+                div.textContent = log.message;
+                logContent.appendChild(div);
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+
+            function renderLogs() {
+                logContent.innerHTML = '';
+                var entries = currentLogTab === 'fight' ? window._fightEntries : window._logEntries;
+                var isFight = currentLogTab === 'fight';
+                entries.forEach(function (log) {
+                    if (isFight) appendFightToDOM(log);
+                    else appendLogToDOM(log);
+                });
+            }
+
+            // ===== 运行/停止 =====
+            function beginRunUI() {
+                window._logEntries = [];
+                window._fightEntries = [];
+                logContent.innerHTML = '';
+                clearProgress();
+                btnRun.disabled = true;
+                btnStop.disabled = false;
+                btnRun.textContent = '⏳ 运行中...';
+            }
+
+            function runRequestFailed(message) {
+                window._logEntries.push({ level: 'ERROR', message: message });
+                renderLogs();
+                btnRun.disabled = false;
+                btnStop.disabled = true;
+                btnRun.textContent = currentTab === 'FACTOR' ? '▶ 运行已选因子' : '▶ 全部运行';
+            }
+
+            function startRun() {
+                if (currentTab === 'FACTOR') {
+                    showTabRunModal('FACTOR');
+                    return;
+                }
+                var acc = $('account').value.trim();
+                var pwd = $('password').value.trim();
+                if (!acc || !pwd) { showToast('请输入米米号和密码'); return; }
+
+                window._saveSeerAccountToList(acc, pwd);
+                beginRunUI();
+
+                fetch('/studio/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: acc, password: pwd })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) runRequestFailed(data.error);
+                }).catch(function (e) {
+                    runRequestFailed('请求失败: ' + e.message);
+                });
+            }
+
+            function stopRun() {
+                openModal('stopConfirmModal');
+            }
+
+            function confirmStop() {
+                closeModal('stopConfirmModal');
+                fetch('/studio/stop', { method: 'POST' });
+                btnStop.disabled = true;
+            }
+
+            function clearProgress() {
+                scriptProgress = {};
+                if (currentTab === 'FACTOR') renderFactorList();
+                else renderScriptList();
+            }
+
+            // ===== 单独执行脚本 =====
+            function executeSingleScript() {
+                var s = currentScripts[contextTarget];
+                if (!s) return;
+                var acc = $('account').value.trim();
+                var pwd = $('password').value.trim();
+                if (!acc || !pwd) { showToast('请输入米米号和密码'); return; }
+
+                window._saveSeerAccountToList(acc, pwd);
+                beginRunUI();
+
+                fetch('/studio/run_single', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        account: acc,
+                        password: pwd,
+                        file: s.file
+                    })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) runRequestFailed(data.error);
+                }).catch(function (e) {
+                    runRequestFailed('请求失败: ' + e.message);
+                });
+            }
+
+            // ===== TAB长按弹出菜单 =====
+            var tabContextMenu = $('tabContextMenu');
+            var tabContextTarget = '';
+
+            function bindTabLongPress(tab) {
+                if (tab.dataset.tab === 'FACTOR') return;
+                tab.addEventListener('touchstart', function (e) {
+                    tabLongPressed = false;
+                    var t = e.touches[0];
+                    tabLongPressStartX = t.clientX;
+                    tabLongPressStartY = t.clientY;
+                    tabLongPressTimer = setTimeout(function () {
+                        tabLongPressed = true;
+                        showTabContextMenu(tabLongPressStartX, tabLongPressStartY, tab.dataset.tab);
+                    }, 500);
+                }, { passive: false });
+
+                tab.addEventListener('touchmove', function (e) {
+                    if (!tabLongPressTimer) return;
+                    var t = e.touches[0];
+                    if (Math.abs(t.clientX - tabLongPressStartX) > 10 || Math.abs(t.clientY - tabLongPressStartY) > 10) {
+                        clearTimeout(tabLongPressTimer);
+                        tabLongPressTimer = null;
+                    }
+                });
+
+                tab.addEventListener('touchend', function () {
+                    clearTimeout(tabLongPressTimer);
+                    tabLongPressTimer = null;
+                });
+
+                tab.addEventListener('mousedown', function (e) {
+                    tabLongPressed = false;
+                    tabLongPressStartX = e.clientX;
+                    tabLongPressStartY = e.clientY;
+                    tabLongPressTimer = setTimeout(function () {
+                        tabLongPressed = true;
+                        showTabContextMenu(tabLongPressStartX, tabLongPressStartY, tab.dataset.tab);
+                    }, 500);
+                });
+
+                tab.addEventListener('mousemove', function (e) {
+                    if (!tabLongPressTimer) return;
+                    if (Math.abs(e.clientX - tabLongPressStartX) > 10 || Math.abs(e.clientY - tabLongPressStartY) > 10) {
+                        clearTimeout(tabLongPressTimer);
+                        tabLongPressTimer = null;
+                    }
+                });
+
+                tab.addEventListener('mouseup', function () {
+                    clearTimeout(tabLongPressTimer);
+                    tabLongPressTimer = null;
+                });
+            }
+
+            function showTabContextMenu(x, y, tabType) {
+                tabContextTarget = tabType;
+                var menuW = 180, menuH = 100;
+                if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+                if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+                tabContextMenu.style.left = Math.max(8, x) + 'px';
+                tabContextMenu.style.top = Math.max(8, y) + 'px';
+                tabContextMenu.classList.add('active');
+            }
+
+            function hideTabContextMenu() { tabContextMenu.classList.remove('active'); }
+
+            function showTabRunModal(tabType) {
+                if (tabType === 'FACTOR') {
+                    $('tabRunMsg').textContent = '是否执行所有已勾选的因子任务？';
+                } else {
+                    var label = tabType === 'UNITY' ? 'UNITY' : 'FLASH';
+                    $('tabRunMsg').textContent = '是否单独运行' + label + '端脚本？';
+                }
+                $('confirmTabRun').dataset.tab = tabType;
+                openModal('tabRunModal');
+            }
+
+            function startTabRun(tabType) {
+                closeModal('tabRunModal');
+                if (tabType === 'FACTOR') {
+                    startFactorCategoryRun();
+                    return;
+                }
+
+                var acc = $('account').value.trim();
+                var pwd = $('password').value.trim();
+                if (!acc || !pwd) { showToast('请输入米米号和密码'); return; }
+
+                window._saveSeerAccountToList(acc, pwd);
+                beginRunUI();
+
+                fetch('/studio/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: acc, password: pwd, type: tabType })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) runRequestFailed(data.error);
+                }).catch(function (e) {
+                    runRequestFailed('请求失败: ' + e.message);
+                });
+            }
+
+            // ===== 批量删除未选中脚本 =====
+            function showBatchDelete(tabType) {
+                var label = tabType === 'UNITY' ? 'UNITY' : 'FLASH';
+                var uncheckedCount = 0;
+                // 需要从服务端获取当前未选中的数量，这里先显示提示
+                $('batchDeleteMsg').textContent = '将删除 ' + label + ' 分类下所有未勾选的脚本，不可撤销。';
+                $('confirmBatchDelete').dataset.tab = tabType;
+                openModal('batchDeleteModal');
+            }
+
+            function confirmBatchDelete() {
+                var tabType = $('confirmBatchDelete').dataset.tab;
+                closeModal('batchDeleteModal');
+
+                fetch('/studio/delete_unchecked?type=' + tabType, { method: 'POST' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data.ok) {
+                            showToast('已删除 ' + data.deleted + ' 个未选中脚本');
+                            window._logEntries.push({ level: 'INFO', message: '[操作] 已从' + tabType + '端删除 ' + data.deleted + ' 个未勾选脚本' });
+                            if (currentLogTab === 'normal') renderLogs();
+                            loadScripts();
+                        } else {
+                            showToast('删除失败: ' + (data.error || '未知错误'));
+                        }
+                    }).catch(function (e) {
+                        showToast('请求失败: ' + e.message);
+                    });
+            }
+
+            // ===== Toast =====
+            var toastTimer;
+            function showToast(msg) {
+                var el = $('toast');
+                el.textContent = msg;
+                el.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2000);
+            }
+
+            // ===== 工具函数 =====
+            function importFiles(fileList) {
+                var results = [];
+                for (var i = 0; i < fileList.length; i++) {
+                    results.push(fileList[i]);
+                }
+                if (!results.length) return;
+
+                var formData = new FormData();
+                results.forEach(function (f) {
+                    formData.append("files", f);
+                });
+
+                fetch("/studio/import", {
+                    method: "POST",
+                    body: formData
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    var okCount = 0;
+                    var errMsgs = [];
+                    data.forEach(function (item) {
+                        if (item.status === "ok") {
+                            okCount++;
+                        } else {
+                            errMsgs.push(item.file + ": " + item.error);
+                        }
+                    });
+                    if (okCount > 0) {
+                        showToast("成功导入 " + okCount + " 个脚本");
+                        loadScripts();
+                    }
+                    if (errMsgs.length > 0) {
+                        errMsgs.forEach(function (m) { showToast(m); });
+                    }
+                    loadScripts();
+                }).catch(function (e) {
+                    showToast("导入失败: " + e.message);
+                });
+            }
+
+
+            function escHtml(s) {
+                if (!s) return '';
+                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // ===== 因子任务 =====
+            function factorModeLabel(mode) {
+                return { 1: '简单', 2: '普通', 3: '困难' }[mode] || '简单';
+            }
+
+            function loadFactors() {
+                if (currentTab === 'FACTOR') {
+                    factorList.innerHTML = '<div class="empty-state">加载因子中...</div>';
+                    factorEmptyState.style.display = 'none';
+                }
+                fetch('/studio/factors')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        factorItems = data || [];
+                        renderFactorList();
+                    })
+                    .catch(function (e) {
+                        factorItems = [];
+                        renderFactorList();
+                        showToast('加载因子失败: ' + e.message);
+                    });
+            }
+
+            function renderFactorList() {
+                if (!factorItems.length) {
+                    factorList.innerHTML = '';
+                    factorEmptyState.innerHTML = '<div>暂无因子数据</div>';
+                    factorEmptyState.style.display = 'block';
+                    return;
+                }
+                factorEmptyState.style.display = 'none';
+
+                var html = '';
+                factorItems.forEach(function (f, i) {
+                    var status = scriptProgress['factor:' + f.id] || 'pending';
+                    var statusText = { running: '🔄', success: '✅', failed: '❌', stopped: '⏹', pending: '' }[status];
+                    html += '<div class="script-item" data-index="' + i + '">' +
+                        '<input type="checkbox" class="script-checkbox factor-checkbox"' + (f.enabled ? ' checked' : '') + '>' +
+                        '<div class="script-info">' +
+                        '<div class="script-name" title="' + escHtml(f.name) + '">' + escHtml(f.name) + '</div>' +
+                        '<div class="script-meta">' +
+                        '<span class="script-type">因子</span>' +
+                        '<span class="factor-list-meta">ID ' + f.id + '</span>' +
+                        '<span class="factor-list-meta">' + f.stages + ' 关</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<span class="script-status status-' + status + '">' + statusText + '</span>' +
+                        '<span class="script-menu-btn factor-menu-btn">⋯</span>' +
+                        '</div>';
+                });
+                factorList.innerHTML = html;
+
+                factorList.querySelectorAll('.factor-checkbox').forEach(function (cb) {
+                    cb.addEventListener('change', function () {
+                        var idx = parseInt(cb.closest('.script-item').dataset.index);
+                        var item = factorItems[idx];
+                        item.enabled = cb.checked;
+                        fetch('/studio/factor/enabled?id=' + item.id, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ enabled: cb.checked })
+                        }).then(function (r) { return r.json(); }).then(function (data) {
+                            if (data.error) throw new Error(data.error);
+                        }).catch(function (e) {
+                            item.enabled = !cb.checked;
+                            cb.checked = !cb.checked;
+                            showToast('保存失败: ' + e.message);
+                        });
+                    });
+                });
+
+                factorList.querySelectorAll('.factor-menu-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        factorContextTarget = parseInt(btn.closest('.script-item').dataset.index);
+                        showFactorContextMenu(e);
+                    });
+                });
+            }
+
+            function showFactorContextMenu(e) {
+                var x = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                var y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                var menuW = 140, menuH = 130;
+                if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
+                if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+                factorContextMenu.style.left = Math.max(8, x) + 'px';
+                factorContextMenu.style.top = Math.max(8, y) + 'px';
+                factorContextMenu.classList.add('active');
+            }
+
+            function hideFactorContextMenu() {
+                factorContextMenu.classList.remove('active');
+            }
+
+            function showFactorDesc() {
+                var f = factorItems[factorContextTarget];
+                if (!f) return;
+                $('descTitle').textContent = '因子说明';
+                $('descContent').innerHTML = '<p style="margin-bottom:10px;"><strong>' + escHtml(f.name) + '</strong></p>' +
+                    '<p>' + (f.desc ? escHtml(f.desc).replace(/\n/g, '<br>') : '该因子没有说明。') + '</p>';
+                openModal('descModal');
+            }
+
+            function executeFactorItem() {
+                var f = factorItems[factorContextTarget];
+                if (!f) return;
+                if (btnRun.disabled) { showToast('已有任务正在运行'); return; }
+
+                var acc = $('account').value.trim();
+                var pwd = $('password').value.trim();
+                if (!acc || !pwd) { showToast('请输入米米号和密码'); return; }
+
+                window._saveSeerAccountToList(acc, pwd);
+                beginRunUI();
+
+                fetch('/studio/factor/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: acc, password: pwd, id: f.id })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) runRequestFailed(data.error);
+                }).catch(function (e) {
+                    runRequestFailed('请求失败: ' + e.message);
+                });
+            }
+
+            function startFactorCategoryRun() {
+                var acc = $('account').value.trim();
+                var pwd = $('password').value.trim();
+                if (!acc || !pwd) { showToast('请输入米米号和密码'); return; }
+                if (!factorItems.some(function (f) { return f.enabled; })) {
+                    showToast('请先勾选要执行的因子');
+                    return;
+                }
+
+                window._saveSeerAccountToList(acc, pwd);
+                beginRunUI();
+
+                fetch('/studio/factor/run_category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ account: acc, password: pwd })
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.error) runRequestFailed(data.error);
+                }).catch(function (e) {
+                    runRequestFailed('请求失败: ' + e.message);
+                });
+            }
+
+            // ===== 因子设置 =====
+            function showFactorSettings() {
+                var f = factorItems[factorContextTarget];
+                if (!f) return;
+
+                factorSettingsTarget = factorContextTarget;
+                factorSettingsData = null;
+                factorStageDraft = [];
+                $('factorSettingsContent').innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">加载中...</p>';
+                openModal('factorSettingsModal');
+
+                loadFightEditorFiles(function () {
+                    fetch('/studio/factor/settings?id=' + f.id)
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.error) throw new Error(data.error);
+                            factorSettingsData = data;
+                            factorModalMode = data.mode;
+                            factorStageDraft = (data.stages || []).map(function (stage) {
+                                return { port: stage.port || 'UNITY', plan: stage.plan || '' };
+                            });
+                            renderFactorSettings();
+                        })
+                        .catch(function (e) {
+                            $('factorSettingsContent').innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px;">' +
+                                escHtml(e.message) + '</p>';
+                        });
+                });
+            }
+
+            function captureFactorSettingsInputs() {
+                if (!factorSettingsData) return;
+                var speed = $('factorSpeedrun');
+                if (speed) factorSettingsData.speedrun = speed.classList.contains('on');
+                var fail = $('factorFailTimes');
+                if (fail && fail.value !== '') {
+                    var value = parseInt(fail.value);
+                    if (!isNaN(value) && value >= 0) factorSettingsData.failTimes = value;
+                }
+            }
+
+            function captureFactorStages() {
+                var stages = [];
+                document.querySelectorAll('#factorSettingsContent .factor-stage-row').forEach(function (row) {
+                    stages.push({
+                        port: row.querySelector('.stage-port').value,
+                        plan: row.querySelector('.stage-plan').value
+                    });
+                });
+                return stages;
+            }
+
+            function resizeFactorDraft(count) {
+                var next = [];
+                for (var i = 0; i < count; i++) {
+                    next.push(factorStageDraft[i] || { port: 'UNITY', plan: '' });
+                }
+                factorStageDraft = next;
+            }
+
+            function selectFactorMode(el) {
+                var mode = parseInt(el.dataset.mode);
+                if (!mode || mode === factorModalMode || !factorSettingsData) return;
+                captureFactorSettingsInputs();
+                factorStageDraft = captureFactorStages();
+                factorModalMode = mode;
+                renderFactorSettings();
+            }
+            window.selectFactorMode = selectFactorMode;
+
+            function setFactorPlanValue(sel, plan) {
+                if (!plan) return;
+                var exists = Array.prototype.some.call(sel.options, function (opt) { return opt.value === plan; });
+                if (!exists) {
+                    var option = document.createElement('option');
+                    option.value = plan;
+                    option.textContent = plan + '（未找到）';
+                    sel.appendChild(option);
+                }
+                sel.value = plan;
+            }
+
+            function renderFactorSettings() {
+                if (!factorSettingsData) return;
+
+                var modeCounts = factorSettingsData.modeStages || {};
+                var count = parseInt(modeCounts[String(factorModalMode)] || 0);
+                resizeFactorDraft(count);
+
+                var previewName = factorModeLabel(factorModalMode) + '-' + factorSettingsData.factorName;
+                var html = '<div class="factor-settings-head">' +
+                    '<span class="name">' + escHtml(previewName) + '</span>' +
+                    '<span class="sub">ID ' + factorItems[factorSettingsTarget].id + '</span>' +
+                    '</div>';
+
+                html += '<div class="factor-section">' +
+                    '<div class="factor-section-title">挑战难度</div>' +
+                    '<div class="factor-mode-chips">';
+                [1, 2, 3].forEach(function (mode) {
+                    html += '<div class="factor-mode-chip' + (mode === factorModalMode ? ' selected' : '') +
+                        '" data-mode="' + mode + '" onclick="selectFactorMode(this)">' + factorModeLabel(mode) + '</div>';
+                });
+                html += '</div></div>';
+
+                html += '<div class="factor-section"><div class="factor-options-row">' +
+                    '<div><span class="factor-option-label">优先扫荡</span>' +
+                    '<div class="toggle-switch' + (factorSettingsData.speedrun ? ' on' : '') +
+                    '" id="factorSpeedrun" onclick="toggleSwitch(this)"></div></div>' +
+                    '<div><label class="factor-option-label" for="factorFailTimes">允许失败次数</label>' +
+                    '<input class="factor-number-input" type="number" id="factorFailTimes" min="0" step="1" value="' +
+                    (factorSettingsData.failTimes != null ? factorSettingsData.failTimes : 10) + '"></div>' +
+                    '</div></div>';
+
+                html += '<div class="factor-section"><div class="factor-section-title">关卡设置</div><div class="factor-stages">';
+                for (var i = 0; i < count; i++) {
+                    var stage = factorStageDraft[i] || { port: 'UNITY', plan: '' };
+                    html += '<div class="factor-stage-row" data-stage="' + i + '">' +
+                        '<label>第' + (i + 1) + '关</label>' +
+                        '<select class="stage-port">' +
+                        '<option value="UNITY"' + (stage.port !== 'FLASH' ? ' selected' : '') + '>UNITY</option>' +
+                        '<option value="FLASH"' + (stage.port === 'FLASH' ? ' selected' : '') + '>FLASH</option>' +
+                        '</select>' +
+                        '<select class="stage-plan"></select>' +
+                        '</div>';
+                }
+                if (count === 0) {
+                    html += '<p style="color:var(--text-muted);font-size:14px;">该难度没有可挑战的关卡。</p>';
+                }
+                html += '</div></div>';
+
+                $('factorSettingsContent').innerHTML = html;
+                document.querySelectorAll('#factorSettingsContent .stage-plan').forEach(function (sel, i) {
+                    fillFightSelect(sel);
+                    setFactorPlanValue(sel, factorStageDraft[i] ? factorStageDraft[i].plan : '');
+                });
+            }
+
+            function saveFactorSettings() {
+                if (!factorSettingsData || factorSettingsTarget < 0) return;
+
+                var failInput = $('factorFailTimes');
+                var failTimes = parseInt(failInput.value);
+                if (isNaN(failTimes) || failTimes < 0) {
+                    showToast('允许失败次数不能小于 0');
+                    failInput.focus();
+                    return;
+                }
+
+                var stages = captureFactorStages();
+                var payload = {
+                    mode: factorModalMode,
+                    speedrun: $('factorSpeedrun').classList.contains('on'),
+                    failTimes: failTimes,
+                    stages: stages
+                };
+                var f = factorItems[factorSettingsTarget];
+                var btn = $('saveFactorSettings');
+                btn.disabled = true;
+
+                fetch('/studio/factor/settings?id=' + f.id, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    btn.disabled = false;
+                    if (data.error) {
+                        showToast('保存失败: ' + data.error);
+                        return;
+                    }
+                    closeModal('factorSettingsModal');
+                    var missing = stages.findIndex(function (stage) { return !stage.plan; });
+                    if (missing >= 0) {
+                        showToast('已保存，第' + (missing + 1) + '关尚未选择挑战方案');
+                    } else {
+                        showToast('设置已保存');
+                    }
+                    loadFactors();
+                }).catch(function (e) {
+                    btn.disabled = false;
+                    showToast('保存失败: ' + e.message);
+                });
+            }
+
+            init();
+        })();
+    </script>
+</body>
+
+</html>

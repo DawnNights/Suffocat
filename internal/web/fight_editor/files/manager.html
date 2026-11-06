@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战斗脚本管理</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            height: 48px;
+            background: #1f2937;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        #main {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 48px;
+            left: 0;
+            height: calc(100vh - 48px);
+            display: flex;
+            flex-direction: row;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        #sidebar.hidden {
+            transform: translateX(-260px);
+        }
+
+        #sidebar-content {
+            width: 260px;
+            max-width: 80vw;
+            background: #f9fafb;
+            overflow-y: auto;
+            padding: 8px;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+        }
+
+        #sidebar-toggle {
+            width: 20px;
+            height: 80px;
+            background: #1f2937;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 0 4px 4px 0;
+            font-size: 16px;
+            user-select: none;
+            position: fixed;
+            top: 50%;
+            /* 展开时贴在侧边栏右缘，避免遮挡侧边栏中的脚本文字 */
+            left: min(260px, 80vw);
+            transform: translateY(-50%);
+            transition: left 0.3s ease;
+            z-index: 1100;
+        }
+
+        #sidebar.hidden+#sidebar-toggle {
+            left: 0;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 48px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 900;
+            display: none;
+        }
+
+        .folder {
+            margin-bottom: 10px;
+        }
+
+        .folder-title {
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .folder-title:hover {
+            background: #e5e5eb;
+            border-radius: 4px;
+        }
+
+        .folder-arrow {
+            width: 12px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .folder-files {
+            margin-left: 16px;
+            margin-top: 4px;
+        }
+
+        .folder-files.hidden {
+            display: none;
+        }
+
+        .file {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 2px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file:hover {
+            background: #e0f2fe;
+        }
+
+        .file.active {
+            background: #bae6fd;
+            color: #0369a1;
+            font-weight: bold;
+        }
+
+        .root-files {
+            margin-top: 12px;
+            border-top: 1px dashed #d1d5db;
+            padding-top: 8px;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            min-width: 120px;
+            display: none;
+        }
+
+        .context-menu div {
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .context-menu div:hover {
+            background: #e0f2fe;
+        }
+
+        /* ===== prompt ===== */
+        #custom-prompt-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .3);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #custom-prompt-box {
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            width: 280px;
+            max-width: 90vw;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+        }
+
+        #custom-prompt-message {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        #custom-prompt-input {
+            width: 100%;
+            padding: 6px 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+
+        #custom-prompt-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* ===== confirm ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .3);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            width: 280px;
+            max-width: 90vw;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-cancel {
+            background: #ddd;
+        }
+
+        .btn-ok {
+            background: #1f2937;
+            color: #fff;
+        }
+
+        #move-dir-list {
+            max-height: 260px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        #move-dir-list label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        #move-dir-list label:hover {
+            background: #e0f2fe;
+        }
+
+        #move-dir-list label.current {
+            color: #9ca3af;
+            cursor: not-allowed;
+            background: #f3f4f6;
+        }
+
+        #move-dir-list label.current:hover {
+            background: #f3f4f6;
+        }
+
+        #move-dir-list input[type="radio"] {
+            accent-color: #1f2937;
+        }
+
+        /* ===== tips ===== */
+        #tips-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .3);
+            z-index: 11000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #tips-box {
+            background: #fff;
+            padding: 20px 24px;
+            border-radius: 8px;
+            width: 340px;
+            max-width: 90vw;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+        }
+
+        #tips-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+
+        #tips-content {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        #tips-content li {
+            margin-bottom: 4px;
+        }
+
+        #tips-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-tips-primary {
+            background: #1f2937;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-tips-primary:hover {
+            background: #374151;
+        }
+
+        .btn-tips-secondary {
+            background: #e5e7eb;
+            color: #374151;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-tips-secondary:hover {
+            background: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+    <header>战斗脚本管理</header>
+
+    <div id="main">
+        <div id="sidebar">
+            <div id="sidebar-content"></div>
+        </div>
+        <div id="sidebar-toggle">◀</div>
+        <div id="overlay"></div>
+        <div id="content">
+            <iframe id="editor" style="width:100%;height:100%;border:none"></iframe>
+        </div>
+    </div>
+
+    <div id="menu" class="context-menu"></div>
+
+    <!-- prompt -->
+    <div id="custom-prompt-overlay">
+        <div id="custom-prompt-box">
+            <div id="custom-prompt-message"></div>
+            <input id="custom-prompt-input" />
+            <div id="custom-prompt-buttons">
+                <button id="custom-prompt-cancel">取消</button>
+                <button id="custom-prompt-ok">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- confirm -->
+    <div id="custom-confirm" class="modal-overlay">
+        <div class="modal-box">
+            <div id="custom-confirm-message"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="confirm-cancel">取消</button>
+                <button class="btn-ok" id="confirm-ok">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- tips dialog -->
+    <div id="tips-overlay">
+        <div id="tips-box">
+            <div id="tips-title">使用提示</div>
+            <div id="tips-content">
+                <ul style="margin:0;padding-left:18px;">
+                    <li>点击左侧按钮可展开 / 收起侧边栏</li>
+                    <li>长按侧边栏空白区域可新建脚本与子目录</li>
+                    <li>右键/长按文件或目录可进行重命名、删除、复制、移动等操作</li>
+                    <li>点击文件即可在右侧编辑器中打开</li>
+                </ul>
+            </div>
+            <div id="tips-buttons">
+                <button class="btn-tips-primary" id="tips-known">我已知晓</button>
+                <button class="btn-tips-secondary" id="tips-later">下次再说</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- move dialog -->
+    <div id="move-dialog" class="modal-overlay">
+        <div class="modal-box" style="width: 300px;">
+            <div style="margin-bottom: 10px; font-weight: bold; font-size: 14px;">选择目标目录</div>
+            <div id="move-dir-list"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="move-cancel">取消</button>
+                <button class="btn-ok" id="move-ok">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        const sidebar = document.getElementById("sidebar");
+        const sidebarContent = document.getElementById("sidebar-content");
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const overlay = document.getElementById("overlay");
+        const iframe = document.getElementById("editor");
+        const menu = document.getElementById("menu");
+        let currentActiveEl = null;
+        let currentFolderName = "";
+        let childDirs = [];
+
+        // sidebar收/展开
+        function showSidebar() { sidebar.classList.remove("hidden"); overlay.style.display = "block"; toggleBtn.textContent = "◀"; }
+        function hideSidebar() { sidebar.classList.add("hidden"); overlay.style.display = "none"; toggleBtn.textContent = "▶"; }
+        toggleBtn.addEventListener("click", () => { sidebar.classList.contains("hidden") ? showSidebar() : hideSidebar(); });
+        overlay.addEventListener("click", hideSidebar);
+
+        // 脚本操作
+        function setActive(el) { if (currentActiveEl) currentActiveEl.classList.remove("active"); currentActiveEl = el; el.classList.add("active"); }
+        function displayName(file) { return file.replace(/\.yaml$/, ""); }
+        function openScript(childName, file, el) { iframe.src = `/fight_editor?childName=${encodeURIComponent(childName)}&file=${encodeURIComponent(file)}`; setActive(el); }
+        function showMenu(items, x, y) { menu.innerHTML = ""; items.forEach(it => { const div = document.createElement("div"); div.textContent = it.name; div.onclick = () => { it.action(); hideMenu(); }; menu.appendChild(div); }); menu.style.left = x + "px"; menu.style.top = y + "px"; menu.style.display = "block"; }
+        function hideMenu() { menu.style.display = "none"; }
+        document.addEventListener("click", hideMenu);
+
+        // 自定义 prompt
+        function customPrompt(message, defaultValue = "") {
+            return new Promise(resolve => {
+                const overlay = document.getElementById("custom-prompt-overlay");
+                const msgEl = document.getElementById("custom-prompt-message");
+                const inputEl = document.getElementById("custom-prompt-input");
+                const okBtn = document.getElementById("custom-prompt-ok");
+                const cancelBtn = document.getElementById("custom-prompt-cancel");
+                msgEl.textContent = message;
+                inputEl.value = defaultValue;
+                overlay.style.display = "flex";
+                inputEl.focus();
+                function cleanup() { overlay.style.display = "none"; okBtn.removeEventListener("click", onOk); cancelBtn.removeEventListener("click", onCancel); inputEl.removeEventListener("keydown", onKeyDown); }
+                function onOk() { cleanup(); resolve(inputEl.value); }
+                function onCancel() { cleanup(); resolve(null); }
+                function onKeyDown(e) { if (e.key === "Enter") onOk(); if (e.key === "Escape") onCancel(); }
+                okBtn.addEventListener("click", onOk);
+                cancelBtn.addEventListener("click", onCancel);
+                inputEl.addEventListener("keydown", onKeyDown);
+            });
+        }
+
+        /* ---------- customConfirm ---------- */
+        function customConfirm(message) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById("custom-confirm");
+                const msg = document.getElementById("custom-confirm-message");
+                const ok = document.getElementById("confirm-ok");
+                const cancel = document.getElementById("confirm-cancel");
+
+                msg.textContent = message;
+                overlay.style.display = "flex";
+
+                function cleanup(result) {
+                    overlay.style.display = "none";
+                    ok.onclick = cancel.onclick = null;
+                    resolve(result);
+                }
+
+                ok.onclick = () => cleanup(true);
+                cancel.onclick = () => cleanup(false);
+            });
+        }
+
+        // 渲染逻辑
+        function renderChildNode(node) {
+            const folder = document.createElement("div"); folder.className = "folder";
+            const title = document.createElement("div"); title.className = "folder-title";
+            const arrow = document.createElement("span"); arrow.className = "folder-arrow"; arrow.textContent = "▾";
+            const name = document.createElement("span"); name.textContent = node.Name;
+            title.appendChild(arrow); title.appendChild(name);
+            const filesBox = document.createElement("div"); filesBox.className = "folder-files";
+            title.onclick = () => { filesBox.classList.toggle("hidden"); arrow.textContent = filesBox.classList.contains("hidden") ? "▸" : "▾"; };
+            if (node.Files && node.Files.length > 0) {
+                node.Files.forEach(file => {
+                    const div = document.createElement("div"); div.className = "file"; div.textContent = displayName(file);
+                    div.onclick = () => openScript(node.Name, file, div);
+                    div.addEventListener("contextmenu", e => { e.preventDefault(); showMenu([{ name: "删除文件", action: () => deleteFile(node.Name, file) }, { name: "复制文件", action: () => copyFile(node.Name, file) }, { name: "移动文件", action: () => moveFile(node.Name, file) }, { name: "重命名", action: () => renameFile(node.Name, file) }], e.pageX, e.pageY); });
+                    filesBox.appendChild(div);
+                });
+            } else { const empty = document.createElement("div"); empty.style.fontSize = "12px"; empty.style.color = "#9ca3af"; empty.textContent = "（无脚本）"; filesBox.appendChild(empty); }
+            title.addEventListener("contextmenu", e => { e.preventDefault(); currentFolderName = node.Name; showMenu([{ name: "新增文件", action: createFile }, { name: "重命名", action: () => renameFolder(node.Name) }, { name: "删除子目录", action: () => deleteChild(node.Name) }], e.pageX, e.pageY); });
+            folder.appendChild(title); folder.appendChild(filesBox); sidebarContent.appendChild(folder);
+        }
+        function renderRootFiles(files) {
+            if (files && files.length > 0) {
+                const box = document.createElement("div"); box.className = "root-files";
+                files.forEach(file => {
+                    const div = document.createElement("div"); div.className = "file"; div.textContent = displayName(file);
+                    div.onclick = () => openScript("", file, div);
+                    div.addEventListener("contextmenu", e => { e.preventDefault(); showMenu([{ name: "删除文件", action: () => deleteFile("", file) }, { name: "复制文件", action: () => copyFile("", file) }, { name: "移动文件", action: () => moveFile("", file) }, { name: "重命名", action: () => renameFile("", file) }], e.pageX, e.pageY); });
+                    box.appendChild(div);
+                });
+                sidebarContent.appendChild(box);
+            }
+        }
+        sidebarContent.addEventListener("selectstart", e => { e.preventDefault(); });
+        sidebarContent.addEventListener("contextmenu", e => {
+            if (e.target.closest(".file") || e.target.closest(".folder-title")) return;
+            e.preventDefault(); currentFolderName = ""; showMenu([{ name: "新建文件", action: createFile }, { name: "新建子目录", action: createChild }], e.pageX, e.pageY);
+        });
+
+        // 文件操作
+        async function createFile() { const name = await customPrompt("请输入新文件名（不含.yaml）"); if (!name) return; let fname = name.endsWith(".yaml") ? name : name + ".yaml"; const fd = new FormData(); fd.append("childName", currentFolderName); fd.append("file", fname); fd.append("yaml", ""); const res = await fetch("/fight_editor/write_script", { method: "POST", body: fd }); if ((await res.text()) === "ok") loadScripts(); currentFolderName = ""; }
+        async function createChild() { const name = await customPrompt("请输入新子目录名"); if (!name) return; if (name === "根目录") { alert("不能使用「根目录」作为目录名"); return; } await fetch(`/fight_editor/create_child?childName=${encodeURIComponent(name)}`); loadScripts(); }
+        async function deleteFile(child, file) { if (!await customConfirm("确认删除文件：" + displayName(file) + "?")) return; const fd = new FormData(); fd.append("childName", child); fd.append("file", file); const res = await fetch("/fight_editor/delete_script", { method: "POST", body: fd }); if ((await res.text()) === "ok") loadScripts(); }
+        async function copyFile(child, file) { const defaultName = displayName(file) + "_copy"; const newName = await customPrompt("请输入复制文件的新名称", defaultName); if (!newName) return; let apiName = newName.endsWith(".yaml") ? newName : newName + ".yaml"; const res = await fetch(`/fight_editor/read_script?childName=${encodeURIComponent(child)}&file=${encodeURIComponent(file)}`); const content = await res.text(); const fd = new FormData(); fd.append("childName", child); fd.append("file", apiName); fd.append("yaml", content); const res2 = await fetch("/fight_editor/write_script", { method: "POST", body: fd }); if ((await res2.text()) === "ok") loadScripts(); }
+        async function deleteChild(name) { if (!await customConfirm("确认删除子目录：" + name + "?")) return; const res = await fetch(`/fight_editor/delete_child?childName=${encodeURIComponent(name)}`); if ((await res.text()) === "ok") loadScripts(); }
+        function selectMoveTarget(fromChild) { return new Promise(resolve => { const overlay = document.getElementById("move-dialog"); const list = document.getElementById("move-dir-list"); const okBtn = document.getElementById("move-ok"); const cancelBtn = document.getElementById("move-cancel"); list.innerHTML = ""; let selected = fromChild === "" ? null : ""; const rootLabel = document.createElement("label"); const rootRadio = document.createElement("input"); rootRadio.type = "radio"; rootRadio.name = "move-target"; rootRadio.value = ""; if (fromChild === "") { rootRadio.disabled = true; rootLabel.classList.add("current"); } else { rootRadio.checked = true; } rootLabel.appendChild(rootRadio); rootLabel.appendChild(document.createTextNode("根目录")); list.appendChild(rootLabel); childDirs.forEach(dir => { const label = document.createElement("label"); const radio = document.createElement("input"); radio.type = "radio"; radio.name = "move-target"; radio.value = dir; if (dir === fromChild) { radio.disabled = true; label.classList.add("current"); } radio.addEventListener("change", () => { selected = dir; }); label.appendChild(radio); label.appendChild(document.createTextNode(dir)); list.appendChild(label); }); rootRadio.addEventListener("change", () => { selected = ""; }); overlay.style.display = "flex"; function cleanup() { overlay.style.display = "none"; okBtn.onclick = null; cancelBtn.onclick = null; } function onOk() { if (selected === null) { alert("请选择一个目标目录"); return; } cleanup(); resolve(selected); } function onCancel() { cleanup(); resolve(null); } okBtn.onclick = onOk; cancelBtn.onclick = onCancel; }); }
+        async function moveFile(fromChild, file) { const toChild = await selectMoveTarget(fromChild); if (toChild === null) return; const fd = new FormData(); fd.append("fromChild", fromChild); fd.append("toChild", toChild); fd.append("file", file); const res = await fetch("/fight_editor/move_script", { method: "POST", body: fd }); const text = await res.text(); if (text === "ok") loadScripts(); else alert(text); }
+        async function renameFile(child, oldFile) { const newName = await customPrompt("请输入新文件名（不含.yaml）", displayName(oldFile)); if (!newName) return; let apiName = newName.endsWith(".yaml") ? newName : newName + ".yaml"; if (apiName === oldFile) return; const fd = new FormData(); fd.append("childName", child); fd.append("oldFile", oldFile); fd.append("newFile", apiName); const res = await fetch("/fight_editor/rename_script", { method: "POST", body: fd }); const text = await res.text(); if (text === "ok") loadScripts(); else alert(text); }
+        async function renameFolder(oldName) { const newName = await customPrompt("请输入新目录名", oldName); if (!newName || newName === oldName) return; if (newName === "根目录") { alert("不能使用「根目录」作为目录名"); return; } const fd = new FormData(); fd.append("oldName", oldName); fd.append("newName", newName); const res = await fetch("/fight_editor/rename_child", { method: "POST", body: fd }); const text = await res.text(); if (text === "ok") loadScripts(); else alert(text); }
+
+        // 加载脚本
+        async function loadScripts() {
+            sidebarContent.innerHTML = "";
+            const res = await fetch("/fight_editor/all_scripts");
+            const data = await res.json();
+            childDirs = (data.ChildNode || []).map(n => n.Name);
+            (data.ChildNode || []).forEach(renderChildNode);
+            renderRootFiles(data.Files || []);
+        }
+
+        loadScripts();
+
+        // 使用提示浮窗
+        (function () {
+            const TIPS_KEY = "fight_editor_tips_dismissed";
+            if (localStorage.getItem(TIPS_KEY)) return;
+
+            const overlay = document.getElementById("tips-overlay");
+            overlay.style.display = "flex";
+
+            document.getElementById("tips-known").addEventListener("click", () => {
+                localStorage.setItem(TIPS_KEY, "1");
+                overlay.style.display = "none";
+            });
+
+            document.getElementById("tips-later").addEventListener("click", () => {
+                overlay.style.display = "none";
+            });
+        })();
+    </script>
+</body>
+
+</html>

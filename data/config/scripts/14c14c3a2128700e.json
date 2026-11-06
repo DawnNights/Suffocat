@@ -1,0 +1,37 @@
+[
+  {
+    "key": "fight_1",
+    "index": 1,
+    "type": 4,
+    "desc": "第1关战斗方案",
+    "value": "艾欧鲁斯王.yaml"
+  },
+  {
+    "key": "fight_2",
+    "index": 2,
+    "type": 4,
+    "desc": "第2关战斗方案",
+    "value": "艾欧鲁斯王.yaml"
+  },
+  {
+    "key": "fight_3",
+    "index": 3,
+    "type": 4,
+    "desc": "第3关战斗方案",
+    "value": "艾欧鲁斯王.yaml"
+  },
+  {
+    "key": "fight_4",
+    "index": 4,
+    "type": 4,
+    "desc": "第4关战斗方案",
+    "value": "艾欧鲁斯王.yaml"
+  },
+  {
+    "key": "fight_5",
+    "index": 5,
+    "type": 4,
+    "desc": "第5关战斗方案",
+    "value": "艾欧鲁斯王.yaml"
+  }
+]

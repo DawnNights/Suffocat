@@ -1,0 +1,85 @@
+metadata:
+  name: 艾欧鲁斯王
+seerSet:
+  title: 272
+  suit: 448
+  equip: 1301040
+  enableEquipments: true
+  enableTitle: true
+  battleFire: 6
+rosterSet:
+  - id: 3437
+    actionSequence:
+      - - use:
+            type: UseSkill
+            arg: 31114
+          if: []
+    config:
+      fightItems: []
+      deathChange: 1
+    actionName: {}
+  - id: 4648
+    actionSequence:
+      - - use:
+            type: UseSkill
+            arg: 37381
+          if: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 3409
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 2727
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 2735
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 3519
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+  - id: 0
+    actionSequence: []
+    config:
+      fightItems: []
+    actionName: {}
+scriptConfig:
+  fightRoundLimit: 0
+  hpLimit: false
+  clothMust: false
+  titleMust: false
+  supportPetsMust: false

@@ -1,0 +1,1468 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>战斗脚本编辑器</title>
+  <script src="/fight_editor/tailwindcss.js"></script>
+  <script src="/fight_editor/js-yaml.min.js"></script>
+
+  <style>
+    .dragging {
+      opacity: 0.6;
+      background-color: #f0f9ff;
+    }
+
+    .drag-over {
+      outline: 2px dashed #3b82f6;
+    }
+
+    tr {
+      transition: transform 0.2s ease;
+    }
+
+    .not-allowed {
+      cursor: not-allowed !important;
+    }
+
+    .delete-loop-btn {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      background-color: #ef4444;
+      color: white;
+      font-weight: bold;
+      border-radius: 0.25rem;
+      width: 1.5rem;
+      height: 1.5rem;
+      line-height: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    /* ================= 移动端 & 宽屏布局 ================= */
+    body {
+      display: flex;
+      flex-direction: column;
+      background-color: #f3f4f6;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    #main-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      /* 居中显示中间内容 */
+      padding: 1rem;
+    }
+
+    #center-content {
+      width: 100%;
+      max-width: 900px;
+      /* 宽屏更开 */
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      border-radius: 0.25rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      padding: 1rem;
+      /* 宽屏增加内边距 */
+    }
+
+    #top-bar {
+      display: flex;
+      justify-content: center;
+      /* 居中内部内容 */
+      align-items: center;
+      padding: 0.5rem 1rem;
+      /* 宽屏更宽 */
+      background-color: transparent;
+    }
+
+    .top-bar-inner {
+      width: 100%;
+      max-width: 900px;
+      /* 与中心内容一致 */
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #1f2937;
+      color: white;
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem;
+      /* 内边距加宽 */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 标签切换按钮 */
+    #tab-buttons {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background-color: #f9fafb;
+    }
+
+    #tab-buttons button {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      background-color: #f9fafb;
+      font-size: 0.875rem;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    #tab-buttons button.active {
+      background-color: #e0f2fe;
+      font-weight: 600;
+      color: #0369a1;
+    }
+
+    /* 内容区 */
+    .tab-content {
+      padding: 0.75rem;
+    }
+
+    #skill-table-container {
+      overflow-x: auto;
+    }
+
+    #skill-table-container table {
+      display: block;
+      width: max-content;
+      /* 关键：由内容决定宽度 */
+      min-width: 720px;
+      /* 固定逻辑宽度，防止被压缩 */
+      table-layout: auto;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <!-- 顶部 -->
+  <div id="top-bar">
+    <div class="top-bar-inner bg-gray-800 rounded shadow-sm px-3">
+      <div id="current-file">编辑方案: 新方案</div>
+      <div style="display:flex; gap:0.5rem;">
+        <button id="save-yaml" class="bg-green-500 px-3 py-1 rounded text-sm">保存</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 主体 -->
+  <div id="main-container">
+    <div id="center-content">
+
+      <!-- 标签切换 -->
+      <div id="tab-buttons">
+        <button data-tab="roster" class="active">阵容</button>
+        <button data-tab="skills">出招</button>
+        <button data-tab="gear">套装</button>
+      </div>
+
+      <!-- 内容区 -->
+      <div class="tab-content" id="tab-roster">
+        <div id="roster-grid" class="grid grid-cols-3 gap-2 mb-4"></div>
+        <!-- 阵容配置 -->
+        <div class="mt-4 p-3 border rounded bg-gray-50 space-y-3">
+
+          <!-- 最大回合数 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">最大回合数</label>
+            <input type="number" min="1" step="1" id="fight-round-limit" class="border p-2 w-32" placeholder="请输入数字">
+          </div>
+
+          <!-- 领火 / 借火 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">领火 / 借火</label>
+            <select id="battle-fire-select" class="border p-2 w-48"></select>
+          </div>
+
+          <!-- 新增：是否压血 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">是否压血</label>
+            <input type="checkbox" id="enable-hp-limit" class="scale-110">
+          </div>
+
+          <!-- 套装必须拥有 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">套装必须拥有</label>
+            <input type="checkbox" id="suit-must-have" class="scale-110">
+          </div>
+
+          <!-- 称号必须拥有 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">称号必须拥有</label>
+            <input type="checkbox" id="title-must-have" class="scale-110">
+          </div>
+
+          <!-- 待命精灵必须齐全 -->
+          <div class="flex items-center gap-3">
+            <label class="w-24 text-sm font-medium">待命精灵必须齐全</label>
+            <input type="checkbox" id="standby-pets-must-complete" class="scale-110">
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="tab-content hidden" id="tab-skills">
+        <div id="current-pet-label" class="mb-4 p-3 rounded-xl border bg-gradient-to-r from-blue-100 to-blue-200
+                 text-blue-900 font-semibold text-center shadow-md cursor-pointer">
+          未选择精灵
+        </div>
+        <div id="skill-table-container"></div>
+        <button class="bg-green-500 text-white px-3 py-1 rounded mt-3 w-full" onclick="addLoop()">添加动作轮次</button>
+      </div>
+
+      <div class="tab-content hidden" id="tab-gear">
+
+        <!-- 勾选项 -->
+        <div class="mb-4 flex gap-6">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="enable-equipments" class="scale-110">
+            <span>是否更换装备</span>
+          </label>
+
+          <label class="flex items-center gap-2">
+            <input type="checkbox" id="enable-title" class="scale-110">
+            <span>是否更换称号</span>
+          </label>
+        </div>
+
+        <!-- 套装选择 -->
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">套装选择</label>
+          <input type="text" id="suit-search" class="border p-2 w-full mb-1" placeholder="搜索套装">
+          <select id="suit-select" class="border p-2 w-full"></select>
+        </div>
+
+        <!-- 其它装备 -->
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">其它装备选择</label>
+          <input type="text" id="equip-search" class="border p-2 w-full mb-1" placeholder="搜索装备">
+          <select id="equip-select" class="border p-2 w-full"></select>
+        </div>
+
+        <!-- 称号 -->
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1">称号选择</label>
+          <input type="text" id="title-search" class="border p-2 w-full mb-1" placeholder="搜索称号">
+          <select id="title-select" class="border p-2 w-full"></select>
+        </div>
+
+      </div>
+
+
+    </div>
+  </div>
+
+  <script>
+    /* ===================== 全局状态 ===================== */
+    let currentYaml = {
+      metadata: { name: "新方案" },
+      seerSet: { battleFire: 0, suit: 0, equip: 0, title: 0, enableEquipments: false, enableTitle: false },
+      rosterSet: [],
+      scriptConfig: { fightRoundLimit: 0, hpLimit: false, clothMust: false, titleMust: false, supportPetsMust: false }
+    };
+
+    let currentPetIndex = null;
+    let monsterList = [];
+
+    /* ===================== 常量 & 缓存 ===================== */
+    const ACTION_TYPES = [
+      { cn: "使用技能", en: "UseSkill" },
+      { cn: "使用技能石", en: "UseSkillStone" },
+      { cn: "使用道具", en: "UseItem" },
+      { cn: "切换精灵", en: "UseChangePet" },
+      { cn: "撤退", en: "UseRetreat" },
+      { cn: "放弃操作", en: "UseSkip" },
+      { cn: "跳转执行", en: "Goto" }
+    ];
+
+    const FIXED_ITEMS = [
+      { ID: 300011, Name: "初级体力药剂" },
+      { ID: 300012, Name: "中级体力药剂" },
+      { ID: 300013, Name: "高级体力药剂" },
+      { ID: 300014, Name: "超级体力药剂" },
+
+      { ID: 300157, Name: "上等体力药剂" },
+      { ID: 300079, Name: "永寒体力药剂" },
+      { ID: 300742, Name: "长效体力药剂" },
+
+      { ID: 300016, Name: "初级活力药剂" },
+      { ID: 300017, Name: "中级活力药剂" },
+      { ID: 300018, Name: "高级活力药剂" },
+
+      { ID: 300505, Name: "初级精灵捕捉胶囊" }
+    ];
+    const LEFT_TYPES = [
+      { cn: "敌方精灵ID", en: "EnemyPetId" },
+      { cn: "技能PP", en: "SkillPPCount" },
+      { cn: "我方血量", en: "PetHp" },
+      { cn: "敌方血量", en: "EnemyPetHp" },
+      { cn: "回合数", en: "Round" },
+      { cn: "站场回合数", en: "ThisRound" },
+      { cn: "我方异常回合数", en: "Status" },
+      { cn: "敌方异常回合数", en: "EnemyStatus" },
+      { cn: "我方血量百分比", en: "PetHpPercent" },
+      { cn: "敌方血量百分比", en: "EnemyPetHpPercent" },
+      { cn: "我方能力等级", en: "StatLevel" },
+      { cn: "敌方能力等级", en: "EnemyStatLevel" }
+    ];
+
+
+    const STAT_LEVEL_ARGS = { "合计": -1, "攻击": 0, "防御": 1, "特攻": 2, "特防": 3, "速度": 4, "命中": 5 };
+    const STATUS_ARGS = { "任意": -1, "麻痹": 0, "中毒": 1, "烧伤": 2, "寄生对手": 3, "寄生": 4, "冻伤": 5, "害怕": 6, "疲惫": 7, "睡眠": 8, "石化": 9, "混乱": 10, "衰弱": 11, "易燃": 13, "狂暴": 14, "冰封": 15, "流血": 16, "瘫痪": 19, "失明": 20, "焚烬": 22, "诅咒": 23, "烈焰诅咒": 24, "致命诅咒": 25, "虚弱诅咒": 26, "感染": 27, "束缚": 28, "失神": 29, "沉默": 30, "臣服": 31, "凝滞": 32, "星赐": 33, "星哲": 34, "超频": 35, "沸涌": 36, "砥砺": 37, "星赎": 38, "神游": 39, "空定": 40, "狂信": 41 };
+    const FIGHT_ITEM_OPTIONS = {
+      "全面能力提升药剂": 300697, "全面能力提升药剂-龙": 300810,
+      "奇效攻击能量珠": 300779, "奇效防御能量珠": 300780, "奇效特攻能量珠": 300781, "奇效特防能量珠": 300782,
+      "不灭能量珠": 300785, "减伤能量珠Ω": 300135
+    };
+    const ACHIEVEMENT_OPTIONS = { "无称号": 0, "星光铸就者": 591, "七彩试炼": 574, "岁业拔除": 572, "敌月神": 564, "魔王降临": 545, "露希欧幻梦": 544, "星海相逢": 543, "气旋斗者": 528, "黑暗之门": 526, "千年赫尔卡": 522, "星光之旅": 494, "洛林卡之星": 493, "序外执行者": 480, "宴会贵客": 479, "调律者": 476, "十二年之约": 472, "费尤领航员": 468, "观星学者": 467, "星级侦探！": 439, "命理者": 435, "光与暗之心": 432, "光暗试炼者": 431, "光暗观察者": 430, "音浪袭来": 418, "夏日狂想曲": 417, "诡秘之夜": 409, "耀世者": 405, "星愿使者": 347, "金鼠送福": 338, "相伴如故": 397, "十二如初": 374, "钢铁玫瑰": 368, "牛尾除厄": 366, "守夜者": 359, "牛气冲天": 358, "希望之花": 346, "御象灵尊护法": 337, "神启者": 336, "元旦之福": 335, "未来领航员": 329, "拾光印记": 332, "藏匿大师": 327, "新年大吉": 324, "复仇者": 323, "追风": 307, "时空穿梭者": 304, "宇宙之光": 302, "神话": 300, "魂域解放者": 294, "混沌领军": 293, "圣灵战将": 292, "铸魂新军": 285, "混沌教徒": 284, "初心不负": 283, "吉光凤羽": 272, "皇帝的意志": 268, "星球捍卫者": 267, "星球守望者": 266, "正义圣使": 264, "狂战士": 263, "战斗王者": 259, "霜月奇迹": 258, "星际角斗士": 254, "赛尔小劳模": 244, "齐天小圣": 236, "金甲猴王": 235, "嬉山小猴": 234, "元初圣印": 230, "解放飓风星云": 214, "闪耀之星": 210, "周年庆小贵族": 165, "爱国者": 164, "魔界守护者": 401, "冥域守护者": 394, "克里奥星域守护者": 382, "泰坦星系守护者": 378, "螺旋星系守护者": 370, "裂空星系守护者": 369, "罗格星系守护者": 361, "卡兰星系守护者": 350, "帕诺星系守护者": 349, "圣光守护者": 193, "联赛高手": 160, "全国制霸": 159, "战斗大师": 154, "家园卫士": 153, "劳动最光荣": 152, "战斗爱好者": 151 };
+    const SUIT_OPTIONS = { "无套装": 0, "天人套装": 474, "萌萌露露套装": 473, "丸子龙套装": 469, "魔王克星战甲": 465, "遗迹守护套装": 458, "星光绿光战甲": 456, "星光烈焰战甲": 454, "星光海啸战甲": 452, "漆黑天使": 448, "空元战甲": 442, "祥龙战甲": 438, "苍星战甲": 437, "圣乐铠甲（典藏版）": 431, "圣乐铠甲": 430, "耀世战铠": 428, "乾古套装": 425, "杰出新兵套装": 423, "永夜玄铠": 421, "飞翼套装": 419, "勇者战甲": 415, "六界战甲": 414, "金狮祥瑞战甲": 413, "元神守护套装": 411, "毒液战甲": 404, "未来战甲": 403, "瀚海套装": 402, "天尊战铠": 400, "热血勇者套装": 392, "天启套装": 389, "皇帝战铠套装": 377, "2016巅峰战甲套装": 374, "2016巅峰圣甲套装": 373, "至高胜利套装": 371, "典狱长套装": 370, "四九圣尊套装": 367, "银翼骑士套装": 365, "幻影·戮神诛魔": 364, "铅尘·暗羽凛翼": 363, "重生之翼套装": 358, "机械师套装": 356, "消防员套装": 354, "月华套装": 351, "圣灵祝福法衣Ω": 348, "典狱官套装": 337, "奇客战将套装": 333, "四九战将套装": 332, "宇宙探险家的猩红套装": 331, "火云": 316, "御龙战甲": 303, "后羿战甲套装": 285, "天虎战将套装": 236, "伯爵战将套装": 231, "黄蜂套装": 230 }
+    const EQUIP_OPTIONS = { "无": 0, "漫游者-S": 1301041, "漫游者-AH": 1301040, "漫游者-AS": 1301039, "预言之镜": 1300994, "倒吊的假面": 1300954, "绿棘球头套": 1300949, "星愿之镜": 1300895, "魔界之风": 1300874, "粒子目镜": 1300872, "光羽目镜": 1300871, "未来之瞳": 1300838, "鹰眼目镜": 1300773, "2016巅峰之眼": 1300715, "4399墨镜": 1300698 }
+
+    const FIRE_OPTIONS = { "无": 0, "绿火": 6, "蓝火": 7, "紫火": 8, "金火": 9 }
+
+    const OPERATORS = ["==", "!=", ">", "<", ">=", "<="];
+    const skillCache = new Map();
+
+    /* ===================== 工具函数 ===================== */
+    function emptyPet() { return { id: 0, actionSequence: [], actionName: {}, config: { fightItems: [], level: 0, deathChange: -1 } }; }
+    function normalizeIfForDisplay(ifField) {
+      if (!ifField) return [];
+      return Array.isArray(ifField) ? ifField.flatMap(c => Array.isArray(c) ? c : [c]) : [ifField];
+    }
+    function formatCond(c) {
+      return `${c.left || ''}${c.leftArg != null ? `(${c.leftArg})` : ''} ${c.operator || ''} ${c.right ?? ''}`;
+    }
+    function getUrlParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+    function customAlert(message, duration = 2000) {
+      // 防止重复弹出
+      const old = document.getElementById('__custom_alert__');
+      if (old) old.remove();
+
+      const mask = document.createElement('div');
+      mask.id = '__custom_alert__';
+      mask.style.position = 'fixed';
+      mask.style.left = '0';
+      mask.style.top = '0';
+      mask.style.width = '100vw';
+      mask.style.height = '100vh';
+      mask.style.background = 'rgba(0,0,0,0.3)';
+      mask.style.display = 'flex';
+      mask.style.alignItems = 'center';
+      mask.style.justifyContent = 'center';
+      mask.style.zIndex = '99999';
+
+      const box = document.createElement('div');
+      box.style.background = '#fff';
+      box.style.padding = '16px 20px';
+      box.style.borderRadius = '8px';
+      box.style.minWidth = '200px';
+      box.style.maxWidth = '80vw';
+      box.style.textAlign = 'center';
+      box.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+      box.style.fontSize = '14px';
+      box.style.color = '#111';
+
+      const text = document.createElement('div');
+      text.textContent = message;
+      text.style.marginBottom = '12px';
+
+      const btn = document.createElement('button');
+      btn.textContent = '确定';
+      btn.style.background = '#3b82f6';
+      btn.style.color = '#fff';
+      btn.style.border = 'none';
+      btn.style.padding = '6px 16px';
+      btn.style.borderRadius = '4px';
+      btn.style.cursor = 'pointer';
+
+      btn.onclick = () => mask.remove();
+      mask.onclick = e => { if (e.target === mask) mask.remove(); };
+
+      box.appendChild(text);
+      box.appendChild(btn);
+      mask.appendChild(box);
+      document.body.appendChild(mask);
+
+      if (duration > 0) {
+        setTimeout(() => {
+          if (mask.parentNode) mask.remove();
+        }, duration);
+      }
+    }
+
+    function isOnRightHalf(element) {
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      return centerX > window.innerWidth / 2;
+    }
+
+    /* ===================== DOM 初始化 ===================== */
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+
+        document.querySelectorAll('#tab-buttons button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+    });
+
+    /* ===================== 阵容操作 ===================== */
+    function initRosterGrid() {
+      const grid = document.getElementById('roster-grid');
+      grid.innerHTML = '';
+
+      // ===== 创建格子（先显示默认内容） =====
+      for (let i = 0; i < 12; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'border p-2 text-center cursor-pointer';
+        cell.classList.add(i < 6 ? 'bg-yellow-100' : 'bg-gray-100');
+        cell.onclick = () => { currentPetIndex = i; };
+        cell.ondblclick = () => editPet(i);
+        grid.appendChild(cell);
+      }
+
+      populateRosterGrid(); // 先填充默认信息
+
+      // ===== 异步加载 monsterList，加载完再刷新格子 =====
+      fetch('/fight_editor/all_monsters')
+        .then(r => r.json())
+        .then(list => {
+          monsterList = list;
+          populateRosterGrid(); // 重新渲染精灵名字
+          populateSkillsTable();    // 更新出招表
+        })
+        .catch(e => customAlert('加载精灵列表失败: ' + e));
+    }
+
+    function initRosterConfig() {
+      /** ===== 最大回合数 ===== */
+      const roundInput = document.getElementById('fight-round-limit');
+      if (roundInput) {
+        roundInput.value = currentYaml.scriptConfig?.fightRoundLimit ?? '';
+
+        roundInput.addEventListener('input', () => {
+          roundInput.value = roundInput.value.replace(/[^\d]/g, '');
+        });
+
+        roundInput.addEventListener('change', () => {
+          const v = Number(roundInput.value);
+          if (!isNaN(v)) {
+            currentYaml.scriptConfig.fightRoundLimit = v;
+          }
+        });
+      }
+
+      /** ===== 领火 / 借火 ===== */
+      const fireSelect = document.getElementById('battle-fire-select');
+      if (fireSelect) {
+        fireSelect.innerHTML = '';
+
+        Object.entries(FIRE_OPTIONS).forEach(([label, val]) => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = label;
+          fireSelect.appendChild(opt);
+        });
+
+        fireSelect.value = currentYaml.seerSet?.battleFire ?? 0;
+
+        fireSelect.onchange = () => {
+          currentYaml.seerSet.battleFire = Number(fireSelect.value);
+        };
+      }
+
+      /** ===== 是否压血 ===== */
+      const hpLimitChk = document.getElementById('enable-hp-limit');
+      if (hpLimitChk) {
+        // 初始化勾选状态
+        hpLimitChk.checked = !!currentYaml.scriptConfig.hpLimit;
+
+        hpLimitChk.onchange = () => {
+          currentYaml.scriptConfig.hpLimit = hpLimitChk.checked;
+        };
+      }
+
+      /** ===== 套装必须拥有 ===== */
+      const clothMustChk = document.getElementById('suit-must-have');
+      if (clothMustChk) {
+        clothMustChk.checked = !!currentYaml.scriptConfig.clothMust;
+        clothMustChk.onchange = () => {
+          currentYaml.scriptConfig.clothMust = clothMustChk.checked;
+        };
+      }
+
+      /** ===== 称号必须拥有 ===== */
+      const titleMustChk = document.getElementById('title-must-have');
+      if (titleMustChk) {
+        titleMustChk.checked = !!currentYaml.scriptConfig.titleMust;
+        titleMustChk.onchange = () => {
+          currentYaml.scriptConfig.titleMust = titleMustChk.checked;
+        };
+      }
+
+      /** ===== 待命精灵必须齐全 ===== */
+      const standbyChk = document.getElementById('standby-pets-must-complete');
+      if (standbyChk) {
+        standbyChk.checked = !!currentYaml.scriptConfig.supportPetsMust;
+        standbyChk.onchange = () => {
+          currentYaml.scriptConfig.supportPetsMust = standbyChk.checked;
+        };
+      }
+    }
+
+
+    initRosterGrid();
+    initRosterConfig();
+    loadYamlFromServer(getUrlParam("childName") ?? "", getUrlParam("file"));
+
+    function populateRosterGrid() {
+      const cells = document.getElementById('roster-grid').children;
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        const pet = currentYaml.rosterSet[i];
+
+        // ==== 显示精灵信息（已移除压血相关后缀） ====
+        if (pet?.id) {
+          const name = monsterList[pet.id] || '未知精灵';
+          const hasItems = (pet.config?.fightItems || []).length > 0;
+          let suffix = hasItems ? '(药)' : '';
+          cell.textContent = `[${pet.id}]${name}${suffix}`;
+          cell.classList.replace('cursor-default', 'cursor-move');
+        } else {
+          cell.textContent = i < 6 ? `出战 ${i + 1}` : `待命 ${i - 5}`;
+          cell.classList.replace('cursor-move', 'cursor-default');
+        }
+
+        // ==== 拖拽 ====
+        cell.draggable = !!pet?.id;
+        cell.ondragstart = e => { if (!pet?.id) { e.preventDefault(); return; } e.dataTransfer.setData('text/plain', i); e.dataTransfer.effectAllowed = 'move'; };
+        cell.ondragover = e => { e.preventDefault(); e.dataTransfer.dropEffect = pet?.id ? 'move' : 'none'; };
+        cell.ondrop = e => {
+          e.preventDefault();
+          const fromIndex = Number(e.dataTransfer.getData('text/plain')), toIndex = i;
+          const fromPet = currentYaml.rosterSet[fromIndex], toPet = currentYaml.rosterSet[toIndex];
+          if (!fromPet?.id || !toPet?.id) return;
+          [currentYaml.rosterSet[fromIndex], currentYaml.rosterSet[toIndex]] = [toPet, fromPet];
+          populateRosterGrid();
+          if (currentPetIndex === fromIndex) currentPetIndex = toIndex;
+          else if (currentPetIndex === toIndex) currentPetIndex = fromIndex;
+          populateSkillsTable();
+        };
+
+        // ==== 左键编辑精灵 ====
+        cell.onclick = e => {
+          const pet = currentYaml.rosterSet[i];
+
+          // 左键弹出菜单
+          if (pet?.id) {
+            e.preventDefault();
+            e.stopPropagation();
+            showRosterContextMenu(e, pet, i);
+            return;
+          }
+
+          // 左键选择精灵
+          editPet(i);
+        };
+
+      }
+    }
+
+    function showRosterContextMenu(e, pet, i) {
+      if (!pet?.id) return;
+
+      const oldMenu = document.getElementById('roster-context-menu');
+      if (oldMenu) oldMenu.remove();
+
+      const menu = document.createElement('div');
+      menu.id = 'roster-context-menu';
+      menu.className = 'absolute bg-white border rounded shadow-md z-50 text-sm';
+      document.body.appendChild(menu);
+      menu.style.left = e.pageX + 'px';
+      menu.style.top = e.pageY + 'px';
+
+      // ⭐ 判断主菜单展开方向
+      menu.dataset.openToLeft = isOnRightHalf(menu) ? '1' : '0';
+
+      const isStandby = i >= 6 && i < 12;
+
+      const hideMenusOnLeave = (parent, submenu) => () =>
+        setTimeout(() => {
+          if (!parent.matches(':hover') && !submenu.matches(':hover')) {
+            submenu.style.display = 'none';
+          }
+        }, 150);
+
+      // ⭐ 统一的子菜单定位逻辑
+      const showSubMenu = subMenu => {
+        subMenu.style.display = 'block';
+        if (menu.dataset.openToLeft === '1') {
+          subMenu.style.right = '100%';
+          subMenu.style.left = 'auto';
+        } else {
+          subMenu.style.left = '100%';
+          subMenu.style.right = 'auto';
+        }
+      };
+
+      // =========================
+      // 使用战斗道具（仅出战位）
+      // =========================
+      let selected;
+      if (!isStandby) {
+        const itemMenu = document.createElement('div');
+        itemMenu.className =
+          'px-3 py-1 hover:bg-gray-100 cursor-pointer relative flex justify-between items-center';
+        itemMenu.innerHTML = `<span>使用战斗道具</span><span></span>`;
+        const menuCheck = itemMenu.lastChild;
+
+        const subMenu = document.createElement('div');
+        subMenu.className =
+          'absolute top-0 bg-white border rounded shadow-md p-2 text-sm';
+        subMenu.style.display = 'none';
+        subMenu.style.minWidth = '200px';
+
+        selected = new Set(pet.config.fightItems || []);
+        menuCheck.textContent = selected.size ? '✔' : '';
+
+        Object.entries(FIGHT_ITEM_OPTIONS).forEach(([name, id]) => {
+          const opt = document.createElement('div');
+          opt.className =
+            'px-2 py-1 hover:bg-gray-100 cursor-pointer flex justify-between items-center';
+          opt.textContent = name;
+
+          const check = document.createElement('span');
+          check.textContent = selected.has(id) ? '✔' : '';
+          opt.appendChild(check);
+
+          opt.onclick = ev => {
+            ev.stopPropagation();
+            if (selected.has(id)) selected.delete(id);
+            else if (selected.size < 2) selected.add(id);
+
+            check.textContent = selected.has(id) ? '✔' : '';
+            pet.config.fightItems = Array.from(selected);
+            menuCheck.textContent = selected.size ? '✔' : '';
+            populateRosterGrid();
+          };
+
+          subMenu.appendChild(opt);
+        });
+
+        itemMenu.appendChild(subMenu);
+        itemMenu.onmouseenter = () => showSubMenu(subMenu);
+        itemMenu.onmouseleave = hideMenusOnLeave(itemMenu, subMenu);
+        menu.appendChild(itemMenu);
+      }
+
+      // =================
+      // 原压血子菜单已删除
+      // =================
+
+      // =================
+      // 设置等级（仅出战位）
+      // =================
+      if (!isStandby) {
+        const levelMenu = document.createElement('div');
+        levelMenu.className =
+          'px-3 py-1 hover:bg-gray-100 cursor-pointer relative flex justify-between items-center';
+        levelMenu.innerHTML = `<span>设置等级</span><span></span>`;
+        const menuCheck = levelMenu.lastChild;
+
+        const levelSub = document.createElement('div');
+        levelSub.className =
+          'absolute top-0 bg-white border rounded shadow-md p-2 text-sm';
+        levelSub.style.display = 'none';
+        levelSub.style.minWidth = '80px';
+
+        menuCheck.textContent = pet.config.level !== undefined ? '✔' : '';
+
+        [1, 100].forEach(lv => {
+          const opt = document.createElement('div');
+          opt.className =
+            'px-2 py-1 hover:bg-gray-100 cursor-pointer flex justify-between items-center';
+          opt.textContent = lv;
+
+          const check = document.createElement('span');
+          check.textContent = pet.config.level === lv ? '✔' : '';
+          opt.appendChild(check);
+
+          opt.onclick = e => {
+            e.stopPropagation();
+            pet.config.level = pet.config.level === lv ? undefined : lv;
+            Array.from(levelSub.children).forEach(c => {
+              const val = Number(c.firstChild.textContent);
+              c.querySelector('span').textContent =
+                pet.config.level === val ? '✔' : '';
+            });
+            menuCheck.textContent = pet.config.level !== undefined ? '✔' : '';
+            populateRosterGrid();
+          };
+
+          levelSub.appendChild(opt);
+        });
+
+        levelMenu.appendChild(levelSub);
+        levelMenu.onmouseenter = () => showSubMenu(levelSub);
+        levelMenu.onmouseleave = hideMenusOnLeave(levelMenu, levelSub);
+        menu.appendChild(levelMenu);
+      }
+
+      // =================
+      // 设置死切（仅出战位）
+      // =================
+      if (!isStandby) {
+        const deathMenu = document.createElement('div');
+        deathMenu.className =
+          'px-3 py-1 hover:bg-gray-100 cursor-pointer relative flex justify-between items-center';
+        deathMenu.innerHTML = `<span>设置死切</span><span></span>`;
+        const menuCheck = deathMenu.lastChild;
+
+        const deathSub = document.createElement('div');
+        deathSub.className =
+          'absolute top-0 bg-white border rounded shadow-md p-2 text-sm';
+        deathSub.style.display = 'none';
+        deathSub.style.minWidth = '150px';
+
+        menuCheck.textContent = Number(pet.config.deathChange) >= 0 ? '✔' : '';
+
+        currentYaml.rosterSet.forEach((p, idx) => {
+          if (idx >= 6 || !p || p.id === 0 || idx === i) return;
+
+          const opt = document.createElement('div');
+          opt.className =
+            'px-2 py-1 hover:bg-gray-100 cursor-pointer flex justify-between items-center';
+          opt.textContent = `[${idx + 1}] ${monsterList[p.id] || '未知精灵'}`;
+
+          const check = document.createElement('span');
+          check.textContent = Number(pet.config.deathChange) >= 0 ? '✔' : '';
+          opt.appendChild(check);
+
+          opt.onclick = e => {
+            e.stopPropagation();
+            pet.config.deathChange =
+              pet.config.deathChange === idx ? undefined : idx;
+            Array.from(deathSub.children).forEach(c => {
+              const val = Number(c.firstChild.textContent.match(/\d+/)[0]) - 1;
+              c.querySelector('span').textContent =
+                pet.config.deathChange === val ? '✔' : '';
+            });
+            menuCheck.textContent =
+              pet.config.deathChange !== undefined ? '✔' : '';
+            populateRosterGrid();
+          };
+
+          deathSub.appendChild(opt);
+        });
+
+        deathMenu.appendChild(deathSub);
+        deathMenu.onmouseenter = () => showSubMenu(deathSub);
+        deathMenu.onmouseleave = hideMenusOnLeave(deathMenu, deathSub);
+        menu.appendChild(deathMenu);
+      }
+
+      // ===== 删除 =====
+      const del = document.createElement('div');
+      del.textContent = '删除';
+      del.className = 'px-3 py-1 hover:bg-gray-100 cursor-pointer';
+      del.onclick = () => {
+        const isFront = i < 6;
+        const end = isFront ? 5 : 11;
+        currentYaml.rosterSet[i] = emptyPet();
+        for (let j = i; j < end; j++) {
+          if (currentYaml.rosterSet[j + 1]?.id) {
+            currentYaml.rosterSet[j] = currentYaml.rosterSet[j + 1];
+            currentYaml.rosterSet[j + 1] = emptyPet();
+          } else break;
+        }
+        populateRosterGrid();
+        populateSkillsTable();
+        menu.remove();
+      };
+      menu.appendChild(del);
+
+      const closeMenu = ev => {
+        if (!menu.contains(ev.target)) {
+          if (selected) pet.config.fightItems = Array.from(selected);
+          populateRosterGrid();
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      };
+      document.addEventListener('click', closeMenu);
+    }
+
+    /* ===================== 精灵选择 ===================== */
+    async function selectMonster(currentId) {
+      return new Promise(resolve => {
+        const mask = document.createElement('div'); mask.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+        const box = document.createElement('div'); box.className = 'bg-white p-4 rounded w-[420px] max-h-[80vh] flex flex-col';
+        const title = document.createElement('div'); title.className = 'font-bold mb-2'; title.textContent = '选择精灵';
+        const search = document.createElement('input'); search.type = 'text'; search.placeholder = '搜索精灵名称 / ID'; search.className = 'border p-2 w-full mb-2';
+        const listBox = document.createElement('div'); listBox.className = 'border rounded overflow-y-auto flex-1 mb-3';
+        const list = document.createElement('ul'); list.className = 'divide-y text-sm'; listBox.appendChild(list);
+        const btnBar = document.createElement('div'); btnBar.className = 'text-right';
+        const okBtn = document.createElement('button'); okBtn.className = 'bg-blue-500 text-white px-3 py-1 rounded mr-2'; okBtn.textContent = '确定';
+        const cancelBtn = document.createElement('button'); cancelBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded'; cancelBtn.textContent = '取消';
+        btnBar.append(okBtn, cancelBtn); box.append(title, search, listBox, btnBar); mask.appendChild(box); document.body.appendChild(mask);
+        let selectedId = currentId ?? null;
+
+        function renderList(keyword = '') {
+          list.innerHTML = ''; const kw = keyword.trim().toLowerCase();
+          monsterList.forEach((name, id) => {
+            if (!name) return;
+            if (kw && !name.toLowerCase().includes(kw) && !String(id).includes(kw)) return;
+            const li = document.createElement('li'); li.className = 'px-2 py-1 cursor-pointer hover:bg-blue-100 flex justify-between';
+            if (id === selectedId) li.classList.add('bg-blue-200');
+            li.textContent = `[${id}] ${name}`; li.onclick = () => { selectedId = id; renderList(search.value); };
+            list.appendChild(li);
+          });
+          if (!list.children.length) { const empty = document.createElement('li'); empty.className = 'px-2 py-4 text-center text-gray-400'; empty.textContent = '没有匹配的精灵'; list.appendChild(empty); }
+        }
+
+        search.oninput = () => renderList(search.value);
+        okBtn.onclick = () => { document.body.removeChild(mask); resolve(selectedId); };
+        cancelBtn.onclick = () => { document.body.removeChild(mask); resolve(null); };
+        mask.onclick = e => { if (e.target === mask) { document.body.removeChild(mask); resolve(null); } };
+
+        renderList();
+      });
+    }
+
+    async function editPet(index) {
+      let targetIndex = index;
+      if (index < 6) { for (let i = 0; i <= index; i++) { if (!currentYaml.rosterSet[i] || currentYaml.rosterSet[i].id === 0) { targetIndex = i; break; } } }
+      else { for (let i = 6; i <= index; i++) { if (!currentYaml.rosterSet[i] || currentYaml.rosterSet[i].id === 0) { targetIndex = i; break; } } }
+
+      if (!currentYaml.rosterSet[targetIndex]) currentYaml.rosterSet[targetIndex] = emptyPet();
+      const pet = currentYaml.rosterSet[targetIndex];
+      const id = await selectMonster(pet.id);
+      if (id === null) return;
+      pet.id = id;
+      currentYaml.rosterSet[targetIndex] = pet;
+      currentPetIndex = targetIndex;
+      populateRosterGrid(); populateSkillsTable();
+    }
+
+    /* ===================== 出招表格 ===================== */
+    function populateSkillsTable() {
+      const container = document.getElementById('skill-table-container');
+      container.innerHTML = '';
+      if (currentPetIndex === null) return;
+      const pet = currentYaml.rosterSet[currentPetIndex];
+      const labelContainer = document.getElementById('current-pet-label');
+      labelContainer.innerHTML = '';
+
+      // ===== 当前精灵下拉选择器 =====
+      const select = document.createElement('select');
+      select.className =
+        'mb-4 p-2 rounded-xl border bg-gradient-to-r from-blue-100 to-blue-200 text-blue-900 font-semibold shadow-md cursor-pointer w-full text-center';
+      currentYaml.rosterSet.forEach((p, idx) => {
+        if (idx >= 6) return; if (!p || p.id === 0) return;
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `出战${idx + 1}: [${p.id}] ${monsterList[p.id] || '未知精灵'}`;
+        select.appendChild(option);
+      });
+      select.value = currentPetIndex;
+      select.onchange = () => { currentPetIndex = Number(select.value); populateSkillsTable(); };
+      labelContainer.appendChild(select);
+
+      if (!pet.actionSequence) pet.actionSequence = [];
+      pet.actionSequence.forEach((loop, i) => {
+        const loopDiv = document.createElement('div');
+        loopDiv.className = 'mb-6 border p-2 bg-gray-50 rounded';
+
+        // ===== 轮次标题 + 删除轮次按钮 =====
+        const headerContainer = document.createElement('div');
+        headerContainer.className = 'flex justify-between items-center mb-2';
+
+        const header = document.createElement('div');
+        header.className = 'font-bold cursor-text select-none';
+
+        const customName = pet.actionName?.[i];
+        header.textContent = customName ? customName : `第 ${i + 1} 轮动作`;
+
+        // ===== 双击进入编辑模式 =====
+        header.ondblclick = e => {
+          e.stopPropagation();
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'border px-2 py-1 rounded w-full text-sm';
+          input.value = customName || '';
+
+          header.replaceWith(input);
+          input.focus();
+          input.select();
+
+          const commit = () => {
+            const val = input.value.trim();
+            pet.actionName = pet.actionName || {};
+
+            if (val) {
+              pet.actionName[i] = val;
+            } else {
+              delete pet.actionName[i];
+            }
+
+            populateSkillsTable();
+          };
+
+          const cancel = () => {
+            populateSkillsTable();
+          };
+
+          input.onkeydown = ev => {
+            if (ev.key === 'Enter') commit();
+            if (ev.key === 'Escape') cancel();
+          };
+
+          input.onblur = () => commit();
+        };
+
+
+
+        const delLoopBtn = document.createElement('div');
+        delLoopBtn.className = 'bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded cursor-pointer ml-2';
+        delLoopBtn.textContent = '×';
+        delLoopBtn.title = '删除该轮动作';
+        delLoopBtn.onclick = () => {
+          const pet = currentYaml.rosterSet[currentPetIndex];
+
+          // 删除 actionSequence
+          pet.actionSequence.splice(i, 1);
+
+          // 同步调整 actionName
+          if (pet.actionName) {
+            const newMap = {};
+            Object.entries(pet.actionName).forEach(([k, v]) => {
+              const idx = Number(k);
+              if (idx < i) newMap[idx] = v;
+              else if (idx > i) newMap[idx - 1] = v;
+            });
+            pet.actionName = newMap;
+          }
+
+          populateSkillsTable();
+
+        };
+
+        // 控制显隐
+        const updateDelLoopBtn = () => {
+          delLoopBtn.style.display = (pet.actionSequence[i]?.length === 0 ? 'flex' : 'none');
+        };
+        updateDelLoopBtn();
+
+        headerContainer.appendChild(header);
+        headerContainer.appendChild(delLoopBtn);
+        loopDiv.appendChild(headerContainer);
+
+        const table = document.createElement('table');
+        table.className = 'table-auto w-full border-collapse border border-gray-300';
+        table.innerHTML = `<thead class="bg-gray-200">
+    <tr><th class="border px-2 py-1">序号</th><th class="border px-2 py-1">类型</th><th class="border px-2 py-1">参数</th><th class="border px-2 py-1">条件</th><th class="border px-2 py-1">操作</th></tr>
+  </thead><tbody></tbody>`;
+        loopDiv.appendChild(table);
+        const tbody = table.querySelector('tbody');
+
+        loop.forEach((step, j) => {
+          const tr = document.createElement('tr');
+          tr.className = 'transition-all';
+          tr.innerHTML = `<td class="border px-2 py-1">${j + 1}</td>
+      <td class="border px-2 py-1">
+        <select class="border p-1 w-full"
+          onchange="onActionTypeChange(${i},${j},this.value)">
+          ${ACTION_TYPES.map(t => `<option value="${t.en}" ${t.en === step.use?.type ? 'selected' : ''}>${t.cn}</option>`).join('')}
+        </select>
+      </td>
+      <td class="border px-2 py-1"><select class="border p-1 w-full" id="arg-${i}-${j}" onchange="updateSkillArg(${i},${j},this.value)"></select></td>
+      <td class="border px-2 py-1" id="cond-${i}-${j}"></td>
+      <td class="border px-2 py-1"><button class="bg-red-500 text-white px-1 rounded" onclick="deleteSkillStep(${i},${j})">删除</button></td>`;
+
+          // ===== 拖拽逻辑 =====
+          tr.draggable = true;
+          tr.ondragstart = e => {
+            e.dataTransfer.setData('text/plain', j);
+            tr.classList.add('dragging');
+            const crt = tr.cloneNode(true);
+            crt.style.position = "absolute";
+            crt.style.top = "-1000px";
+            document.body.appendChild(crt);
+            e.dataTransfer.setDragImage(crt, 0, 0);
+            setTimeout(() => document.body.removeChild(crt), 0);
+          };
+          tr.ondragend = e => tr.classList.remove('dragging');
+          tr.ondragover = e => {
+            e.preventDefault();
+            const fromIndex = Number(e.dataTransfer.getData('text/plain'));
+            const currentLoopArr = currentYaml.rosterSet[currentPetIndex].actionSequence[i];
+            if (!currentLoopArr || fromIndex >= currentLoopArr.length) {
+              e.dataTransfer.dropEffect = 'none';
+              tr.classList.add('not-allowed');
+            } else {
+              e.dataTransfer.dropEffect = 'move';
+              tr.classList.remove('not-allowed');
+            }
+          };
+          tr.ondrop = e => {
+            e.preventDefault();
+            tr.classList.remove('drag-over');
+            const fromIndex = Number(e.dataTransfer.getData('text/plain'));
+            const toIndex = j;
+            if (fromIndex === toIndex) return;
+            const currentLoopArr = currentYaml.rosterSet[currentPetIndex].actionSequence[i];
+            if (!currentLoopArr) return;
+            [currentLoopArr[fromIndex], currentLoopArr[toIndex]] = [currentLoopArr[toIndex], currentLoopArr[fromIndex]];
+            populateSkillsTable();
+          };
+
+          tbody.appendChild(tr);
+          setTimeout(() => onActionTypeChange(i, j, step.use?.type), 0);
+          step.if = step.if || [];
+          setTimeout(() => renderCondition(i, j, step.if), 0);
+        });
+
+        // ===== 添加动作按钮 =====
+        const addBtn = document.createElement('button');
+        addBtn.className = 'bg-blue-500 text-white px-2 py-1 rounded mt-2';
+        addBtn.textContent = '添加动作';
+        addBtn.onclick = () => addSkillStep(i);
+        loopDiv.appendChild(addBtn);
+
+        container.appendChild(loopDiv);
+      });
+
+    }
+
+    /* ===================== 条件渲染 ===================== */
+    function renderCondition(loop, idx, conds) {
+      const container = document.getElementById(`cond-${loop}-${idx}`);
+      if (!container) return;
+      container.innerHTML = '';
+      conds = conds || [];
+
+      conds.forEach((c, i) => {
+        const row = document.createElement('div'); row.className = 'flex gap-1 mb-1 items-center';
+        // left
+        const leftSelect = document.createElement('select');
+        LEFT_TYPES.forEach(l => {
+          const opt = document.createElement('option');
+          opt.value = l.en;   // 导出用英文
+          opt.textContent = l.cn; // 页面显示中文
+          if (l.en === c.left) opt.selected = true;
+          leftSelect.appendChild(opt);
+        });
+
+        row.appendChild(leftSelect);
+
+        const leftArgSelect = document.createElement('select'); row.appendChild(leftArgSelect);
+        function updateLeftArgOptions() {
+          leftArgSelect.innerHTML = ''; leftArgSelect.disabled = false;
+          if (c.left === "StatLevel" || c.left === "EnemyStatLevel") {
+            Object.entries(STAT_LEVEL_ARGS).forEach(([label, val]) => { const opt = document.createElement('option'); opt.value = val; opt.textContent = label; if (val === c.leftArg) opt.selected = true; leftArgSelect.appendChild(opt); });
+            // 默认初始化左值参数
+            initSelectLeftArg(leftArgSelect, c);
+            return;
+          }
+          if (c.left === "Status" || c.left === "EnemyStatus") {
+            Object.entries(STATUS_ARGS).forEach(([label, val]) => { const opt = document.createElement('option'); opt.value = val; opt.textContent = label; if (val === c.leftArg) opt.selected = true; leftArgSelect.appendChild(opt); });
+            // 默认初始化左值参数
+            initSelectLeftArg(leftArgSelect, c);
+            return;
+          }
+          if (c.left === "SkillPPCount") {
+            const petId = currentYaml.rosterSet[currentPetIndex]?.id;
+            if (!petId) { leftArgSelect.disabled = true; return; }
+            if (skillCache.has(petId)) { fillSkillLeftArg(leftArgSelect, skillCache.get(petId), c); return; }
+            const loading = document.createElement('option'); loading.textContent = '加载技能中...'; leftArgSelect.appendChild(loading);
+            fetch(`/fight_editor/get_moves?petId=${petId}`).then(r => r.json()).then(list => { skillCache.set(petId, list); fillSkillLeftArg(leftArgSelect, list, c); }).catch(() => { leftArgSelect.innerHTML = ''; const err = document.createElement('option'); err.textContent = '加载失败'; leftArgSelect.appendChild(err); });
+            return;
+          }
+          if (c.left === "PetHp" || c.left === "PetHpPercent") {
+            currentYaml.rosterSet.forEach((p, idx) => {
+              if (idx >= 6) return;          // 只出战
+              if (!p || p.id === 0) return;  // 空格子跳过
+              const opt = document.createElement('option');
+              opt.value = idx;               // 导出 YAML 用精灵位置索引
+              opt.textContent = `[${idx + 1}] ${monsterList[p.id] || '未知精灵'}`;
+              if (idx === c.leftArg) opt.selected = true;
+              leftArgSelect.appendChild(opt);
+            });
+
+            // 没有其他出战精灵则禁用
+            if (!leftArgSelect.options.length) {
+              const opt = document.createElement('option');
+              opt.textContent = '无其他出战精灵';
+              opt.value = '';
+              leftArgSelect.appendChild(opt);
+              leftArgSelect.disabled = true;
+            }
+
+            // 默认初始化左值参数
+            initSelectLeftArg(leftArgSelect, c);
+            return;
+          }
+          leftArgSelect.disabled = true;
+        }
+        updateLeftArgOptions();
+        leftSelect.onchange = () => { c.left = leftSelect.value; updateLeftArgOptions(); };
+        leftArgSelect.onchange = () => { c.leftArg = isNaN(Number(leftArgSelect.value)) ? leftArgSelect.value : Number(leftArgSelect.value); };
+
+        // operator
+        const opSelect = document.createElement('select');
+        OPERATORS.forEach(op => { const opt = document.createElement('option'); opt.value = op; opt.textContent = op; if (op === c.operator) opt.selected = true; opSelect.appendChild(opt); });
+        opSelect.onchange = () => c.operator = opSelect.value; row.appendChild(opSelect);
+
+        // right
+        const rightInput = document.createElement('input');
+        rightInput.type = 'number';          // 关键：数字输入
+        rightInput.inputMode = 'numeric';    // 移动端数字键盘
+        rightInput.step = '1';               // 整数
+        // 输入时兜底过滤（防粘贴）
+        rightInput.addEventListener('input', () => {
+          rightInput.value = rightInput.value.replace(/[^\d]/g, '');
+        });
+        rightInput.className = 'border p-1 w-16'; rightInput.value = c.right ?? ''; rightInput.onchange = () => { const val = rightInput.value, n = Number(val); c.right = val === '' ? null : (isNaN(n) ? val : n); }; row.appendChild(rightInput);
+
+        // 删除条件按钮
+        const delBtn = document.createElement('button'); delBtn.className = 'bg-red-500 text-white px-1 rounded'; delBtn.textContent = '×';
+        delBtn.onclick = () => { conds.splice(i, 1); renderCondition(loop, idx, conds); };
+        row.appendChild(delBtn);
+
+        container.appendChild(row);
+      });
+
+      // 添加条件按钮
+      const addBtn = document.createElement('button'); addBtn.className = 'bg-blue-500 text-white px-2 py-1 rounded mt-1';
+      addBtn.textContent = '添加条件'; addBtn.onclick = () => { conds.push({ left: LEFT_TYPES[0].en, leftArg: null, operator: '>', right: null }); renderCondition(loop, idx, conds); };
+      container.appendChild(addBtn);
+    }
+
+    function fillSkillLeftArg(select, skillList, cond) {
+      select.innerHTML = '';
+      skillList.forEach(s => { const opt = document.createElement('option'); opt.value = s.ID; opt.textContent = `[${s.ID}] ${s.Name}`; if (s.ID === cond.leftArg) opt.selected = true; select.appendChild(opt); });
+      if (cond.leftArg == null && skillList.length) cond.leftArg = skillList[0].ID;
+    }
+
+    /* ===================== 动作类型 & 参数逻辑 ===================== */
+    function initSelectArg(select, step) {
+      if (select.options.length > 0 && (step.use.arg == null || step.use.arg === 0 || step.use.arg === '')) {
+        step.use.arg = Number(select.options[0].value);
+      }
+
+      select.onchange = () => {
+        const val = select.value;
+        step.use.arg = val === '' ? null : Number(val);
+      };
+    }
+
+    function initSelectLeftArg(select, c) {
+      if (select.options.length > 0 && (c.leftArg == null || c.leftArg === '' || c.leftArg == 0)) {
+        const val = select.options[0].value;
+        c.leftArg = val === '' ? null : (!isNaN(val) ? Number(val) : val);
+        select.selectedIndex = 0;
+      }
+
+      select.onchange = () => {
+        const val = select.value;
+        c.leftArg = val === '' ? null : (!isNaN(val) ? Number(val) : val);
+      };
+    }
+
+    function onActionTypeChange(loop, idx, type) {
+      const pet = currentYaml.rosterSet[currentPetIndex];
+      const step = pet.actionSequence[loop][idx];
+      step.use.type = type;
+
+      const argSelect = document.getElementById(`arg-${loop}-${idx}`);
+      if (!argSelect) return;
+      argSelect.innerHTML = '';
+      argSelect.disabled = false;
+
+      // ===== 无参数 =====
+      if (["UseSkillStone", "UseRetreat", "UseSkip"].includes(type)) {
+        argSelect.disabled = true;
+        const opt = document.createElement('option');
+        opt.textContent = '无参数';
+        opt.value = '';
+        argSelect.appendChild(opt);
+        step.use.arg = null;
+        return;
+      }
+
+      // ===== UseSkill =====
+      if (type === "UseSkill") {
+        loadSkillOptions(argSelect, step);
+        return;
+      }
+
+      // ===== UseItem =====
+      if (type === "UseItem") {
+        FIXED_ITEMS.forEach(it => {
+          const opt = document.createElement('option');
+          opt.value = String(it.ID);
+          opt.textContent = `[${it.ID}] ${it.Name}`;
+          if (it.ID === step.use.arg) opt.selected = true;
+          argSelect.appendChild(opt);
+        });
+        initSelectArg(argSelect, step);
+        return;
+      }
+
+      // ===== UseChangePet =====
+      if (type === "UseChangePet") {
+        currentYaml.rosterSet.forEach((p, idx2) => {
+          if (idx2 >= 6) return;
+          if (!p || p.id === 0) return;
+          if (idx2 === currentPetIndex) return;
+
+          const opt = document.createElement('option');
+          opt.value = String(idx2);
+          opt.textContent = `[${idx2 + 1}] ${monsterList[p.id] || '未知精灵'}`;
+          if (idx2 === step.use.arg) opt.selected = true;
+          argSelect.appendChild(opt);
+        });
+        initSelectArg(argSelect, step);
+        return;
+      }
+
+      // ===== Goto =====
+      if (type === "Goto") {
+        pet.actionSequence.forEach((_, i) => {
+          if (i === loop) return;
+          const opt = document.createElement('option');
+          opt.value = String(i);
+
+          const customName = pet.actionName?.[i];
+          opt.textContent = customName ? customName : `第 ${i + 1} 轮动作`;
+          if (i === step.use.arg) opt.selected = true;
+          argSelect.appendChild(opt);
+        });
+        initSelectArg(argSelect, step);
+        return;
+      }
+    }
+
+
+
+    function loadSkillOptions(select, step) {
+      const petId = currentYaml.rosterSet[currentPetIndex]?.id; if (!petId) return;
+      if (skillCache.has(petId)) { fillSkillSelect(select, skillCache.get(petId), step); return; }
+      select.innerHTML = `<option>加载中...</option>`;
+      fetch(`/fight_editor/get_moves?petId=${petId}`).then(r => r.json()).then(list => { skillCache.set(petId, list); fillSkillSelect(select, list, step); }).catch(() => { select.innerHTML = `<option>加载失败</option>`; });
+    }
+
+    function fillSkillSelect(select, list, step) {
+      select.innerHTML = '';
+
+      list.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.ID;
+        opt.textContent = `[${s.ID}] ${s.Name}`;
+        if (s.ID === step.use.arg) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      initSelectArg(select, step);
+    }
+
+
+    /* ===================== 动作操作 ===================== */
+    function addSkillStep(loopIndex) { const pet = currentYaml.rosterSet[currentPetIndex]; if (!pet.actionSequence[loopIndex]) pet.actionSequence[loopIndex] = []; pet.actionSequence[loopIndex].push({ use: { type: 'UseSkill', arg: 0 }, if: [] }); populateSkillsTable(); }
+    function updateSkillArg(loop, idx, val) { const n = Number(val); currentYaml.rosterSet[currentPetIndex].actionSequence[loop][idx].use.arg = isNaN(n) ? val : n; }
+    function updateSkillCondition(loop, idx, val) { const parts = val.split(' , ').map(s => s.trim()).filter(Boolean); const conds = parts.map(p => { const m = p.match(/^([^\(\s]+)(?:\(([^)]+)\))?\s*([><=!]+)\s*(\S+)$/); if (!m) return null; let left = m[1], leftArg = m[2] ?? null; if (leftArg !== null && !isNaN(leftArg)) leftArg = Number(leftArg); let operator = m[3], right = m[4]; if (!isNaN(right)) right = Number(right); return { left, leftArg, operator, right }; }).filter(Boolean); currentYaml.rosterSet[currentPetIndex].actionSequence[loop][idx].if = conds; }
+    function addLoop() { currentYaml.rosterSet[currentPetIndex].actionSequence.push([]); populateSkillsTable(); }
+    function deleteSkillStep(l, i) { currentYaml.rosterSet[currentPetIndex].actionSequence[l].splice(i, 1); populateSkillsTable(); }
+
+    function loadYamlFromServer(childName, fileName) {
+      fetch(`/fight_editor/read_script?childName=${encodeURIComponent(childName)}&file=${encodeURIComponent(fileName)}`)
+        .then(r => r.text())
+        .then(text => {
+          try {
+            const y = jsyaml.load(text) || {};
+
+            currentYaml.metadata = y.metadata || { name: fileName };
+            currentYaml.seerSet = y.seerSet || { suit: 0, equip: 0, title: 0 };
+            currentYaml.scriptConfig = y.scriptConfig || { fightRoundLimit: 35 };
+            // 保证新字段存在（兼容旧脚本）
+            if (currentYaml.scriptConfig.hpLimit === undefined) {
+              currentYaml.scriptConfig.hpLimit = false;
+            }
+            if (currentYaml.scriptConfig.clothMust === undefined) {
+              currentYaml.scriptConfig.clothMust = false;
+            }
+            if (currentYaml.scriptConfig.titleMust === undefined) {
+              currentYaml.scriptConfig.titleMust = false;
+            }
+            if (currentYaml.scriptConfig.supportPetsMust === undefined) {
+              currentYaml.scriptConfig.supportPetsMust = false;
+            }
+            currentYaml.rosterSet = [];
+
+            if (y.rosterSet) {
+              y.rosterSet.forEach(p => {
+                if (!p || typeof p !== 'object') {
+                  currentYaml.rosterSet.push(emptyPet());
+                } else {
+                  p.config = p.config || { fightItems: [] };
+                  p.actionSequence = p.actionSequence || [];
+                  p.actionName = p.actionName || {};
+                  currentYaml.rosterSet.push(p);
+                }
+              });
+            }
+
+            document.getElementById('current-file').textContent = `编辑方案: ${currentYaml.metadata.name}`;
+
+            populateRosterGrid();
+            currentPetIndex = 0;
+            populateSkillsTable();
+            initRosterConfig();
+            initGearTab();
+          } catch (e) {
+            customAlert("YAML 解析失败：" + e);
+          }
+        })
+        .catch(err => {
+          customAlert("读取脚本失败：" + err);
+        });
+    }
+
+    document.getElementById('save-yaml').onclick = () => {
+      syncGearBeforeSave()
+      const yamlText = jsyaml.dump({
+        ...currentYaml,
+        rosterSet: normalizeRosterForExport()
+      });
+
+      const form = new FormData();
+      form.append("childName", getUrlParam("childName") ?? "");
+      form.append("file", getUrlParam("file"));
+      form.append("yaml", yamlText);
+
+      fetch("/fight_editor/write_script", {
+        method: "POST",
+        body: form
+      })
+        .then(res => res.text())
+        .then(text => {
+          if (text.trim() === "ok") {
+            customAlert("保存成功");
+          } else {
+            customAlert("保存失败：" + text);
+          }
+        })
+        .catch(err => {
+          customAlert("保存失败：" + err);
+        });
+
+    };
+
+    function normalizeRosterForExport() {
+      const arr = [];
+      for (let i = 0; i < 12; i++) {
+        // 深拷贝，避免修改原数据，同时删除废弃的 hpLimit 字段
+        let pet = currentYaml.rosterSet[i] ? JSON.parse(JSON.stringify(currentYaml.rosterSet[i])) : emptyPet();
+        if (pet.config) {
+          delete pet.config.hpLimit;   // 移除原有压血数据
+        }
+        arr[i] = pet;
+      }
+      return arr;
+    }
+
+    function initSearchSelect(searchInput, select, optionsMap, onSelect) {
+      function render(keyword = '') {
+        select.innerHTML = '';
+        const kw = keyword.trim().toLowerCase();
+        Object.entries(optionsMap).forEach(([name, id]) => {
+          if (kw && !name.toLowerCase().includes(kw) && !String(id).includes(kw)) return;
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = `[${id}] ${name}`;
+          select.appendChild(opt);
+        });
+      }
+
+      searchInput.oninput = () => render(searchInput.value);
+      select.onchange = () => onSelect(Number(select.value));
+      render();
+    }
+
+    function initGearTab() {
+      const seer = currentYaml.seerSet;
+
+      // ===== 勾选框 =====
+      const equipChk = document.getElementById('enable-equipments');
+      const titleChk = document.getElementById('enable-title');
+
+      equipChk.checked = !!seer.enableEquipments;
+      titleChk.checked = !!seer.enableTitle;
+
+      equipChk.onchange = () => seer.enableEquipments = equipChk.checked;
+      titleChk.onchange = () => seer.enableTitle = titleChk.checked;
+
+      // ===== 套装 =====
+      initSearchSelect(
+        document.getElementById('suit-search'),
+        document.getElementById('suit-select'),
+        SUIT_OPTIONS,
+        id => currentYaml.seerSet.suit = id
+      );
+
+      // ===== 其它装备 =====
+      initSearchSelect(
+        document.getElementById('equip-search'),
+        document.getElementById('equip-select'),
+        EQUIP_OPTIONS,
+        id => currentYaml.seerSet.equip = id
+      );
+
+      // ===== 称号 =====
+      initSearchSelect(
+        document.getElementById('title-search'),
+        document.getElementById('title-select'),
+        ACHIEVEMENT_OPTIONS,
+        id => currentYaml.seerSet.title = id
+      );
+
+      // ===== 回显 =====
+      document.getElementById('suit-select').value = currentYaml.seerSet.suit;
+      document.getElementById('equip-select').value = currentYaml.seerSet.equip;
+      document.getElementById('title-select').value = currentYaml.seerSet.title;
+    }
+
+    function syncGearBeforeSave() {
+      const seer = currentYaml.seerSet;
+
+      const suitSel = document.getElementById('suit-select');
+      const equipSel = document.getElementById('equip-select');
+      const titleSel = document.getElementById('title-select');
+
+      if (suitSel && suitSel.value !== '') {
+        seer.suit = Number(suitSel.value);
+      }
+
+      if (equipSel && equipSel.value !== '') {
+        seer.equip = Number(equipSel.value);
+      }
+
+      if (titleSel && titleSel.value !== '') {
+        seer.title = Number(titleSel.value);
+      }
+    }
+  </script>
+</body>
+
+</html>
